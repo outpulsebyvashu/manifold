@@ -50,10 +50,34 @@ const iso2 = M.isomap(fx.swiss, 1, { autoK: false });
 ok('autoK:false keeps k and reports disconnection when k is too small', iso2.kUsed === 1 && iso2.disconnected === true && iso2.Y.every(r => r.every(isFinite)));
 ok('Y has 2 columns, finite', iso.Y.every(r => r.length === 2 && r.every(isFinite)));
 
+console.log('Wide data (n << d) PCA via Gram matrix');
+const wide = M.pca(fx.wide.X, 5);
+ok('wide: dual path used, rank = n-1', wide.dual === true && wide.rank === fx.wide.X.length - 1, [wide.dual, wide.rank]);
+ok('wide: EVR matches sklearn (first 5)', wide.evr.every((v, i) => close(v, fx.wide.evr[i], 1e-6)), [wide.evr, fx.wide.evr.slice(0, 5)]);
+ok('wide: projections match sklearn up to sign', [0, 1].every(c => { const a = wide.projected.map(r => r[c]), b = fx.wide.proj.map(r => r[c]); const s = Math.sign(a.reduce((q, v, i) => q + v * b[i], 0)) || 1; return a.every((v, i) => close(s * v, b[i], 1e-6)); }));
+ok('wide: loading vectors are unit length', wide.vectors.every(v => close(Math.sqrt(v.reduce((s, x) => s + x * x, 0)), 1, 1e-9)));
+const wide2 = M.pca(fx.wide.X.map(r => r.concat(new Array(200).fill(0))), 3);
+ok('wide: zero-padded features change nothing', close(wide2.evr[0], wide.evr[0], 1e-9));
+
 console.log('Metrics');
 const pcs = M.pca(fx.swiss, 2).projected;
 ok('trustworthiness matches sklearn (k=5,10)', [5, 10].every(k => close(M.trustworthiness(fx.swiss, pcs, k), fx.trust[k], 1e-9)), [M.trustworthiness(fx.swiss, pcs, 5), fx.trust]);
+ok('continuity matches sklearn trustworthiness(Y,X)', [5, 10].every(k => close(M.continuity(fx.swiss, pcs, k), fx.cont[k], 1e-9)));
+const q = M.embeddingQuality(fx.swiss, pcs, 5);
+ok('embeddingQuality: real PCA beats the random baseline by a wide margin', q && q.trust > q.baseline + 0.2 && q.baseline < 0.75, q);
+ok('embeddingQuality returns null when n is too small', M.embeddingQuality(fx.swiss.slice(0, 5), pcs.slice(0, 5), 2) === null);
 ok('knnOverlap is 1 for identity, <1 for a squash', M.knnOverlap(fx.swiss, fx.swiss, 5) === 1 && M.knnOverlap(fx.swiss, pcs, 5) < 1);
+
+console.log('Ordered-data / transition helpers');
+ok('spearman matches scipy', close(M.spearman(fx.spear.a, fx.spear.b), fx.spear.rho, 1e-9));
+const traj = [[0, 0], [1, 0], [2, 0], [3, 0], [10, 0], [11, 0], [12, 0]];
+const st = M.stepSizes(traj, [0, 1, 2, 3, 4, 5, 6]), fj = M.flagJumps(st);
+ok('flagJumps finds the single large step', fj.flagged.length === 1 && fj.flagged[0] === 3 && fj.max === 3, fj);
+ok('flagJumps flags nothing on a uniform trajectory', M.flagJumps([1, 1.1, 0.9, 1, 1.05, 0.95]).flagged.length === 0);
+ok('stepSizes honours a custom order', M.stepSizes(traj, [6, 0]).length === 1 && M.stepSizes(traj, [6, 0])[0] === 12);
+const mm = M.minmaxGlobal([[2, 10], [4, 6]]);
+ok('minmaxGlobal uses ONE global range', mm.min === 2 && mm.max === 10 && mm.data[0][0] === 0 && mm.data[0][1] === 1 && mm.data[1][1] === 0.5);
+ok('plasma endpoints / clamping', M.plasma(0) === '#0d0887' && M.plasma(1) === '#f0f921' && M.plasma(-5) === '#0d0887' && /^#[0-9a-f]{6}$/.test(M.plasma(0.37)));
 
 console.log('CSV');
 const csv = M.parseCSV('a,b,c\r\n1,"x, y",3\n2,"he said ""hi""",4\n3,"multi\nline",5\n4,5\n');

@@ -64,6 +64,20 @@ node tests/core.test.js
 
 ---
 
+## 🧪 Playground (for AMBE-style data)
+
+Built for tables like *17 temperatures × 625–2,500 features* (MD / Voronoi volumes), biomedical features, imaging
+features and material-test data:
+
+- **Wide data (n ≪ d)** handled exactly (PCA via the n×n Gram matrix; LDA pre-reduces with PCA) with rank warnings
+- **Continuous colour + trajectory** (plasma scale, points joined in order, start/end markers) and a **Transpose** button
+- **Transition detector**: step size between consecutive states in high-D vs 2-D, flags candidate jumps (heuristic)
+- **Quality metrics**: trustworthiness, continuity, k-NN overlap and a random baseline, with small-n warnings
+- **PCA scree + loadings** (which original columns drive PC1/PC2)
+- Scaling choices (z-score / global min-max / none), optional PCA pre-reduction, missing rows dropped (not zeroed)
+
+---
+
 ## ☁️ Cloudflare
 
 ```

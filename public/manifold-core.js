@@ -129,27 +129,53 @@
     return { data: data.map(function (r) { return r.map(function (v, j2) { return (v - mean[j2]) / sd[j2]; }); }, 0), mean: mean, sd: sd };
   };
 
-  /* ── PCA (exact via Jacobi). EVR uses the TRACE, i.e. all variance. ── */
+  /* ── PCA. Exact Jacobi for small problems, shifted power iteration for big ones.
+     WIDE data (more features than samples, e.g. 17 x 2500) uses the n x n Gram matrix, so cost depends on n, not d.
+     Explained-variance ratio always uses the TRACE (all variance). ── */
+  function symEigs(A, kk) {
+    return A.length <= 120 ? M.jacobiEigen(A) : M.topEigenSym(A, kk, { maxIter: 500, tol: 1e-9 });
+  }
   M.pca = function (data, k) {
-    var n = data.length, d = data[0].length, i, j, r;
+    var n = data.length, d = data[0].length, i, j, r, t;
     var mean = new Array(d).fill(0);
     for (r = 0; r < n; r++) for (j = 0; j < d; j++) mean[j] += data[r][j] / n;
     var c = data.map(function (p) { return p.map(function (v, j2) { return v - mean[j2]; }); });
-    var cov = []; for (i = 0; i < d; i++) cov.push(new Array(d).fill(0));
-    for (r = 0; r < n; r++) for (i = 0; i < d; i++) for (j = i; j < d; j++) cov[i][j] += c[r][i] * c[r][j] / n;
-    for (i = 0; i < d; i++) for (j = 0; j < i; j++) cov[i][j] = cov[j][i];
-    var trace = 0; for (i = 0; i < d; i++) trace += cov[i][i];
-    var eg = M.jacobiEigen(cov), kk = Math.min(k || 2, d);
-    var values = eg.values.slice(0, kk).map(function (v) { return Math.max(0, v); });
-    var vectors = eg.vectors.slice(0, kk);
+    var kk = Math.max(1, Math.min(k || 2, d, n));
+    var values, vectors, trace = 0, cov = null, dual = d > n, allVals = null;
+    if (!dual) {
+      cov = []; for (i = 0; i < d; i++) cov.push(new Array(d).fill(0));
+      for (r = 0; r < n; r++) for (i = 0; i < d; i++) for (j = i; j < d; j++) cov[i][j] += c[r][i] * c[r][j] / n;
+      for (i = 0; i < d; i++) for (j = 0; j < i; j++) cov[i][j] = cov[j][i];
+      for (i = 0; i < d; i++) trace += cov[i][i];
+      var eg = symEigs(cov, kk); if (eg.values.length === d) allVals = eg.values;
+      values = eg.values.slice(0, kk).map(function (v) { return Math.max(0, v); });
+      vectors = eg.vectors.slice(0, kk);
+    } else {
+      // Gram trick: G = C C^T / n  (n x n).  If G u = lam u  then  v = C^T u / sqrt(n lam)  is a unit eigenvector of cov.
+      var G = []; for (i = 0; i < n; i++) G.push(new Array(n).fill(0));
+      for (i = 0; i < n; i++) for (j = i; j < n; j++) { var s2 = 0; for (t = 0; t < d; t++) s2 += c[i][t] * c[j][t]; G[i][j] = G[j][i] = s2 / n; }
+      for (i = 0; i < n; i++) trace += G[i][i];
+      var ge = symEigs(G, kk); if (ge.values.length === n) allVals = ge.values;
+      values = []; vectors = [];
+      for (var q = 0; q < kk; q++) {
+        var lam = Math.max(0, ge.values[q]), u = ge.vectors[q], v = new Array(d).fill(0);
+        if (lam > 1e-12 * Math.max(1e-300, ge.values[0])) {
+          var sc = 1 / Math.sqrt(n * lam);
+          for (i = 0; i < n; i++) { var ui = u[i] * sc; if (ui !== 0) for (t = 0; t < d; t++) v[t] += c[i][t] * ui; }
+        }
+        values.push(lam); vectors.push(v);
+      }
+    }
     // deterministic sign: largest-magnitude component positive
     vectors = vectors.map(function (v) {
-      var m = 0, mi = 0; for (var t = 0; t < v.length; t++) if (Math.abs(v[t]) > m) { m = Math.abs(v[t]); mi = t; }
+      var m = 0, mi = 0; for (var t2 = 0; t2 < v.length; t2++) if (Math.abs(v[t2]) > m) { m = Math.abs(v[t2]); mi = t2; }
       return v[mi] < 0 ? v.map(function (x) { return -x; }) : v;
     });
     var evr = values.map(function (v) { return trace > 0 ? v / trace : 0; });
     var projected = c.map(function (p) { return vectors.map(function (v) { return dot(p, v); }); });
-    return { mean: mean, centered: c, cov: cov, trace: trace, values: values, vectors: vectors, evr: evr, projected: projected };
+    // exact numerical rank when all eigenvalues were computed, otherwise the upper bound min(n-1, d)
+    var rank = allVals ? allVals.filter(function (v) { return v > 1e-10 * (allVals[0] || 1); }).length : Math.min(n - 1, d);
+    return { mean: mean, centered: c, cov: cov, trace: trace, values: values, vectors: vectors, evr: evr, projected: projected, dual: dual, rank: rank };
   };
 
   /* ── LDA: solves S_B v = λ S_W v as a SYMMETRIC problem (Cholesky whitening). ── */
@@ -399,6 +425,65 @@
       for (t = 0; t < h.length; t++) if (l[h[t]]) keep++;
     }
     return keep / (n * k);
+  };
+
+
+  /* ── Continuous colormap (matplotlib "plasma", 9 stops) ── */
+  var PLASMA = ['#0d0887', '#46039f', '#7201a8', '#9c179e', '#bd3786', '#d8576b', '#ed7953', '#fb9f3a', '#fdca26', '#f0f921'];
+  M.plasma = function (t) {
+    t = Math.max(0, Math.min(1, t)); var x = t * (PLASMA.length - 1), i = Math.min(PLASMA.length - 2, Math.floor(x)), f = x - i;
+    function h(s) { return [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)]; }
+    var a = h(PLASMA[i]), b = h(PLASMA[i + 1]);
+    return '#' + a.map(function (v, k) { return ('0' + Math.round(v + (b[k] - v) * f).toString(16)).slice(-2); }).join('');
+  };
+  M.PLASMA_STOPS = PLASMA;
+
+  /* ── Scaling: ONE global min-max over the whole matrix (preserves relative magnitudes between features) ── */
+  M.minmaxGlobal = function (data) {
+    var mn = Infinity, mx = -Infinity, i, j;
+    for (i = 0; i < data.length; i++) for (j = 0; j < data[i].length; j++) { var v = data[i][j]; if (v < mn) mn = v; if (v > mx) mx = v; }
+    var rg = mx - mn || 1;
+    return { data: data.map(function (r) { return r.map(function (v) { return (v - mn) / rg; }); }), min: mn, max: mx };
+  };
+
+  /* ── Quality of an embedding ── */
+  M.continuity = function (X, Y, k) { return M.trustworthiness(Y, X, k); };   // roles swapped: are high-D neighbours kept?
+  // Trustworthiness / continuity / k-NN overlap, plus a RANDOM-embedding baseline (mean over shuffles of Y).
+  M.embeddingQuality = function (X, Y, k, shuffles) {
+    var n = X.length; shuffles = shuffles || 8;
+    if (n < 8 || k < 2 || 2 * n - 3 * k - 1 <= 0) return null;
+    var rng = M.seededRNG(2024), base = 0, t;
+    for (t = 0; t < shuffles; t++) {
+      var idx = []; for (var i = 0; i < n; i++) idx.push(i);
+      for (var a = n - 1; a > 0; a--) { var b = Math.floor(rng() * (a + 1)), tmp = idx[a]; idx[a] = idx[b]; idx[b] = tmp; }
+      base += M.trustworthiness(X, idx.map(function (q) { return Y[q]; }), k) / shuffles;
+    }
+    return { k: k, trust: M.trustworthiness(X, Y, k), cont: M.continuity(X, Y, k), knn: M.knnOverlap(X, Y, k), baseline: base };
+  };
+
+  /* ── Ordered-data analysis: how far does the system "move" between consecutive states? ── */
+  M.stepSizes = function (P, order) {
+    var out = [];
+    for (var t = 1; t < order.length; t++) out.push(M.euclid(P[order[t - 1]], P[order[t]]));
+    return out;
+  };
+  function median(a) { var b = a.slice().sort(function (x, y) { return x - y; }), m = b.length >> 1; return b.length ? (b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2) : 0; }
+  M.median = median;
+  M.normByMedian = function (a) { var m = median(a) || 1; return a.map(function (v) { return v / m; }); };
+  M.spearman = function (a, b) {
+    function ranks(x) { var idx = x.map(function (v, i) { return [v, i]; }).sort(function (p, q) { return p[0] - q[0]; }), r = new Array(x.length), i = 0;
+      while (i < idx.length) { var j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++; var avg = (i + j) / 2 + 1; for (var t = i; t <= j; t++) r[idx[t][1]] = avg; i = j + 1; } return r; }
+    var ra = ranks(a), rb = ranks(b), n = a.length, ma = 0, mb = 0, i2;
+    for (i2 = 0; i2 < n; i2++) { ma += ra[i2] / n; mb += rb[i2] / n; }
+    var sab = 0, sa = 0, sb = 0; for (i2 = 0; i2 < n; i2++) { sab += (ra[i2] - ma) * (rb[i2] - mb); sa += (ra[i2] - ma) * (ra[i2] - ma); sb += (rb[i2] - mb) * (rb[i2] - mb); }
+    return sa && sb ? sab / Math.sqrt(sa * sb) : 0;
+  };
+  // Candidate transitions = steps clearly larger than the typical step (robust: median / MAD). Returns indices into steps.
+  M.flagJumps = function (steps, factor) {
+    var m = median(steps), mad = median(steps.map(function (v) { return Math.abs(v - m); })) || m * 0.1 || 1e-12;
+    var thr = Math.max(m + 3 * 1.4826 * mad, m * (factor || 2));
+    var flagged = []; steps.forEach(function (v, i) { if (v > thr) flagged.push(i); });
+    return { median: m, threshold: thr, flagged: flagged, max: steps.length ? steps.indexOf(Math.max.apply(null, steps)) : -1 };
   };
 
   /* ── CSV ── RFC-4180-ish: quoted fields, "" escapes, commas/newlines inside quotes. */
