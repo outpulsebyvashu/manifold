@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isomap &mdash; Isometric Mapping | MANIFOLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060b1a;--surface:rgba(255,255,255,0.03);
+  --border:rgba(255,255,255,0.07);
+  --accent:#f59e0b;--accent2:#10b981;--cyan:#00d4ff;--purple:#8b5cf6;--rose:#f43f5e;
+  --text:#dde8f5;--muted:#4e6a84;--soft:#7a9ab8;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden}
+#prog{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:9999;transition:width .06s}
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:14px 40px;background:rgba(6,11,26,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav a{color:var(--soft);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}.nav a:hover{color:var(--accent)}
+.nav-tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.1em}
+
+/* Hero */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#hero-cvs{position:absolute;inset:0;width:100%;height:100%}
+.hero-inner{position:relative;z-index:10;text-align:center;padding:0 24px}
+.eyebrow{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:22px}
+.hero-inner h1{font-family:'Playfair Display',serif;font-size:clamp(52px,8vw,106px);font-weight:700;line-height:1.03;background:linear-gradient(130deg,#fff 0%,var(--accent) 55%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:24px}
+.hero-sub{font-size:18px;color:var(--soft);max-width:580px;margin:0 auto 48px;line-height:1.65}
+.hero-badges{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:36px}
+.hero-badge{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:100px;padding:8px 18px;font-size:12px;color:var(--accent);font-family:'JetBrains Mono',monospace}
+.hero-scroll{display:flex;align-items:center;gap:8px;justify-content:center;color:var(--muted);font-size:13px;animation:float 2.4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+
+.wrap{max-width:1100px;margin:0 auto;padding:0 40px}
+.sec{padding:96px 0}
+.sec-hd{text-align:center;margin-bottom:64px}
+.sec-hd h2{font-family:'Playfair Display',serif;font-size:clamp(30px,4vw,46px);font-weight:700;margin-bottom:14px}
+.sec-hd p{color:var(--soft);font-size:16px;max-width:580px;margin:0 auto}
+.divider{height:1px;background:var(--border);max-width:1100px;margin:0 auto}
+
+/* Analogies */
+.analogy-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:768px){.analogy-grid{grid-template-columns:1fr}}
+.analogy-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;position:relative;overflow:hidden}
+.analogy-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.analogy-icon{font-size:34px;margin-bottom:14px}
+.analogy-card h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:12px}
+.analogy-card p{color:var(--soft);font-size:14.5px;line-height:1.75}
+.key-idea{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:12px;padding:22px 28px;margin-top:28px;font-size:14px;color:var(--soft);line-height:1.75}
+.key-idea strong{color:var(--accent)}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:80px}
+.step-block{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+@media(max-width:900px){.step-block{grid-template-columns:1fr}}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--accent);color:var(--bg);border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;margin-bottom:16px}
+.step-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:14px}
+.step-exp{color:var(--soft);font-size:14.5px;line-height:1.8;margin-bottom:20px}
+.math-block{background:#0e1008;border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:24px;margin:16px 0}
+.formula{font-family:'JetBrains Mono',monospace;font-size:15px;color:#fde68a;text-align:center;padding:12px 8px;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:16px;letter-spacing:.03em;line-height:2}
+.derivation{font-size:13.5px;color:var(--soft);line-height:1.75}
+.derivation strong{color:var(--accent)}
+.mi{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#fde68a;background:rgba(245,158,11,.1);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.deriv-step{margin:10px 0;padding-left:12px;border-left:2px solid rgba(245,158,11,.28);font-size:13px;color:var(--soft)}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:100px;padding:7px 16px;font-size:13px;color:var(--accent);margin-top:16px}
+.cvs-wrap{position:relative}
+.step-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
+.cvs-btn{margin-top:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
+.cvs-btn:hover{background:rgba(245,158,11,.2)}
+
+/* Props */
+.props-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.props-grid{grid-template-columns:1fr}}
+.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.prop-card h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:12px;font-weight:600}
+.prop-card ul{list-style:none;color:var(--soft);font-size:13.5px;line-height:1.9}
+.prop-card ul li::before{content:'-> ';color:var(--accent)}
+
+/* Comparison table */
+.cmp-table{width:100%;border-collapse:collapse;margin-top:32px;font-size:14px}
+.cmp-table th{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.cmp-table td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--soft);vertical-align:top;line-height:1.6}
+.cmp-table tr td:first-child{color:var(--text);font-weight:500}
+.tag{display:inline-block;border-radius:5px;padding:2px 7px;font-size:11px;font-family:'JetBrains Mono',monospace}
+.tag-pca{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);color:#00d4ff}
+.tag-iso{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#f59e0b}
+.tag-tsne{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);color:#f43f5e}
+
+/* Explorer */
+.explorer-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
+.explorer-hd{margin-bottom:32px}
+.explorer-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
+.explorer-hd p{color:var(--soft);font-size:15px}
+.ds-picker{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.ds-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--soft);padding:8px 18px;border-radius:100px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ds-btn:hover{border-color:rgba(245,158,11,.4);color:var(--accent)}
+.ds-btn.active{background:rgba(245,158,11,.12);border-color:var(--accent);color:var(--accent)}
+#ds-info{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:22px;min-height:16px}
+.ex-layout{display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start}
+@media(max-width:1050px){.ex-layout{grid-template-columns:1fr}}
+#ex-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
+.phase-bar{display:flex;gap:6px;margin-top:10px}
+.phase-dot{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,.08);transition:background .3s}
+.phase-dot.active{background:var(--accent)}
+.phase-dot.done{background:rgba(245,158,11,.35)}
+.ex-controls{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ctrl-btn:hover{background:rgba(255,255,255,.1)}
+.ctrl-btn.primary{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.3);color:var(--accent)}
+.ctrl-btn.primary:hover{background:rgba(245,158,11,.22)}
+#phase-label-text{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-left:auto}
+.param-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.param-row label{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;min-width:60px}
+.param-row input[type=range]{flex:1;accent-color:var(--accent)}
+.param-val{font-size:12px;color:var(--accent);font-family:'JetBrains Mono',monospace;min-width:28px}
+
+/* Derivation panel */
+.deriv-panel{background:#080f20;border:1px solid rgba(245,158,11,.15);border-radius:12px;padding:26px;min-height:440px}
+.dp-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+.dp-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:12px}
+.dp-formula{font-family:'JetBrains Mono',monospace;font-size:12px;color:#fde68a;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);padding:10px 14px;border-radius:8px;margin:12px 0;line-height:1.8}
+.dp-body{font-size:13px;color:var(--soft);line-height:1.75}
+.dp-body strong{color:var(--text)}
+.dp-numeric{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#6ee7b7;line-height:1.9;white-space:pre;overflow:auto;max-height:170px}
+
+/* Quiz */
+.quiz-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
+.quiz-hd{text-align:center;margin-bottom:40px}
+.quiz-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
+.quiz-hd p{color:var(--soft);font-size:15px}
+.quiz-q{background:#080f20;border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:18px;transition:border-color .2s}
+.quiz-q.correct{border-color:var(--accent2)}.quiz-q.incorrect{border-color:var(--rose)}
+.q-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px}
+.q-text{font-size:15.5px;font-weight:500;margin-bottom:16px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:580px){.opts{grid-template-columns:1fr}}
+.opt-btn{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--soft);padding:12px 15px;border-radius:8px;font-size:13.5px;cursor:pointer;transition:all .2s;text-align:left;font-family:'DM Sans',sans-serif;line-height:1.45}
+.opt-btn:hover:not(:disabled){border-color:rgba(245,158,11,.3);color:var(--text)}
+.opt-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(245,158,11,.08)}
+.opt-btn.correct-ans{border-color:var(--accent2);color:var(--accent2);background:rgba(16,185,129,.08)}
+.opt-btn.wrong-ans{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08)}
+.feedback{margin-top:12px;font-size:13px;display:none;padding:10px 14px;border-radius:8px}
+.feedback.show-c{display:block;color:var(--accent2);background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2)}
+.feedback.show-w{display:block;color:var(--rose);background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2)}
+.quiz-submit{display:block;margin:28px auto 0;background:var(--accent);color:var(--bg);border:none;padding:13px 40px;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.quiz-submit:hover{opacity:.88}
+.quiz-result{text-align:center;padding:40px;display:none}
+.score-big{font-family:'Playfair Display',serif;font-size:72px;font-weight:700;color:var(--accent)}
+.score-sub{font-size:18px;color:var(--soft);margin-bottom:24px}
+
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s,transform .7s}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;border-top:1px solid var(--border)}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:rgba(255,255,255,0.12);border-color:var(--accent,#00d4ff);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
+</style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+</head>
+<body>
+<div id="prog"></div>
+<nav class="nav">
+  <a href="dashboard.html">&larr; Dashboard</a>
+  <span class="nav-tag">03F &middot; Isomap</span>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="hero-cvs"></canvas>
+  <div class="hero-inner">
+    <span class="eyebrow">Section 03F &mdash; Techniques</span>
+    <div class="hero-badges">
+      <span class="hero-badge">Non-linear</span>
+      <span class="hero-badge">Manifold-aware</span>
+      <span class="hero-badge">Geodesic distances</span>
+      <span class="hero-badge">Graph + MDS</span>
+    </div>
+    <h1>Isomap</h1>
+    <p class="hero-sub">What if instead of measuring the straight-line distance between two points, you measured the shortest path <em>along the surface</em> the data lies on? That is the entire idea behind Isomap.</p>
+    <div class="hero-scroll">Scroll to explore &darr;</div>
+  </div>
+</section>
+
+<!-- ANALOGIES -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">The Core Idea</span>
+      <h2>Why Straight Lines Fail</h2>
+      <p>PCA uses Euclidean (straight-line) distances. On curved surfaces, this is completely wrong. Isomap fixes it.</p>
+    </div>
+    <div class="analogy-grid">
+      <div class="analogy-card">
+        <div class="analogy-icon">&#127758;</div>
+        <h3>Distances on a Globe</h3>
+        <p>London and New York are about 5,500 km apart if you travel <em>along the surface</em> of the Earth. The straight-line distance through the Earth's core is shorter &mdash; but no plane can fly that path. <strong>The meaningful distance is the one that respects the surface you live on.</strong> Isomap measures distances this way: not through the air, but along the curved sheet the data occupies.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="analogy-icon">&#129532;</div>
+        <h3>The Swiss Roll Problem</h3>
+        <p>Imagine a rolled-up carpet. Two points that look close when you measure through the air might actually be very far apart along the carpet's surface. PCA sees the short straight-line distance and confuses the two ends of the roll. <strong>Isomap measures how far apart they truly are along the roll itself</strong> &mdash; then unrolls the carpet into a flat 2D layout that reflects those true distances.</p>
+      </div>
+    </div>
+    <div class="key-idea">
+      <strong>The key insight:</strong> real data often lies on a <em>manifold</em> &mdash; a curved low-dimensional surface embedded in high-dimensional space. Euclidean distance ignores the curvature and gives wrong answers. Isomap approximates the true geodesic (surface) distance using shortest paths through a neighbourhood graph, then applies classical MDS to produce a flat embedding that preserves those distances.
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- STEPS -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-hd reveal">
+      <span class="eyebrow">The Algorithm</span>
+      <h2>Three Steps of Isomap</h2>
+      <p>Isomap is elegantly simple: build a graph, find shortest paths, apply MDS. Every step has a full derivation.</p>
+    </div>
+    <div class="steps">
+
+      <!-- STEP 1 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">1</div>
+          <div class="step-title">Build the Neighbourhood Graph</div>
+          <div class="step-exp">Connect each point to its k nearest neighbours using Euclidean distance. The edge weight between connected points is their Euclidean distance. Points that are NOT connected have no direct edge. This graph is our approximation of the manifold's local structure &mdash; close enough together that the surface is nearly flat, so Euclidean distance is a good local approximation.</div>
+          <div class="math-block">
+            <div class="formula">G = (V, E) where<br>E contains edge (i,j) if j in kNN(i)<br>weight(i,j) = ||x_i - x_j||</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              The key assumption of Isomap is that on a smooth manifold, <em>short enough</em> distances are well-approximated by Euclidean distance. Two points close on the surface are also close in Euclidean space.<br><br>
+              <strong>Two variants of neighbourhood:</strong>
+              <div class="deriv-step"><span class="mi">k-NN</span>: connect each point to its k nearest neighbours (fixed number). Most common. Sensitive to choice of k.</div>
+              <div class="deriv-step"><span class="mi">epsilon-ball</span>: connect all pairs within Euclidean distance epsilon. More geometrically principled but harder to tune.</div>
+              <strong>Why not just use all pairwise distances?</strong><br>
+              Because on a curved surface, the straight-line distance between two distant points cuts through the interior of the manifold &mdash; a path that doesn't exist on the surface. We need to <em>constrain paths to stay on the surface</em>, which is what the graph does.
+            </div>
+          </div>
+          <span class="pill">&#128161; k controls how local vs global the geodesic estimates are</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs1" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(1)">&#9654; Build kNN Graph</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">2</div>
+          <div class="step-title">Compute Geodesic Distances via Dijkstra</div>
+          <div class="step-exp">Now we compute the shortest path between every pair of points through the graph. The shortest path distance approximates the true geodesic (surface) distance. We use Dijkstra's algorithm for each source point, giving an n&times;n matrix D_G of geodesic distances. This is the key step &mdash; it replaces Euclidean distances with manifold-aware distances.</div>
+          <div class="math-block">
+            <div class="formula">D_G[i,j] = shortest path from i to j in G<br><br>Dijkstra: O(n * (n + |E|) log n)<br>for each of n source nodes</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              Dijkstra's algorithm finds the shortest weighted path from one source to all other nodes in a graph. Running it from every node gives us all-pairs shortest paths.<br><br>
+              <strong>How Dijkstra works (one source i):</strong>
+              <div class="deriv-step">1. Initialise: dist[i]=0, dist[all others]=infinity</div>
+              <div class="deriv-step">2. Visit unvisited node with smallest dist, call it u</div>
+              <div class="deriv-step">3. For each neighbour v of u: if dist[u]+weight(u,v) &lt; dist[v], update dist[v]</div>
+              <div class="deriv-step">4. Repeat until all nodes visited</div>
+              <strong>Why does this approximate geodesic distance?</strong><br>
+              Each edge in the graph is a short Euclidean step along the manifold surface (because neighbours are close). The shortest path chains these steps together &mdash; approximating the shortest path along the surface. As the graph becomes denser (more points, smaller k), the approximation improves.
+            </div>
+          </div>
+          <span class="pill">&#128161; Dijkstra paths stay on the manifold surface &mdash; unlike Euclidean shortcuts</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs2" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(2)">&#9654; Animate Dijkstra</button>
+        </div>
+      </div>
+
+      <!-- STEP 3A: MDS -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">3</div>
+          <div class="step-title">Apply Classical MDS</div>
+          <div class="step-exp">Given the n&times;n geodesic distance matrix D_G, we need to find 2D (or dD) coordinates that preserve these distances as well as possible. This is exactly the problem that <strong>Multidimensional Scaling (MDS)</strong> solves. Classical MDS converts the distance matrix to an inner product (Gram) matrix via double-centering, then takes the top eigenvectors.</div>
+          <div class="math-block">
+            <div class="formula">B = -0.5 * H * D_G^(2) * H<br>H = I - (1/n) * 11^T  (centering matrix)<br><br>Eigendecompose B = V Lambda V^T<br>Y = V_k * Lambda_k^(1/2)</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              MDS asks: given pairwise distances, find coordinates y_1,...,y_n such that <span class="mi">||y_i - y_j|| approx D_G[i,j]</span>.<br><br>
+              <strong>Step 1 &mdash; Square the distances:</strong>
+              <div class="deriv-step"><span class="mi">D^(2)[i,j] = D_G[i,j]^2</span></div>
+              <strong>Step 2 &mdash; Double-centering to get inner products:</strong><br>
+              If coordinates are centred at 0, then <span class="mi">||y_i - y_j||^2 = ||y_i||^2 + ||y_j||^2 - 2 y_i^T y_j</span>. We can extract the inner products <span class="mi">B = Y Y^T</span> from D^(2) by centering rows and columns:
+              <div class="deriv-step"><span class="mi">B = -0.5 * H D^(2) H</span> where <span class="mi">H = I - (1/n)11^T</span></div>
+              <strong>Step 3 &mdash; Eigendecompose B:</strong>
+              <div class="deriv-step"><span class="mi">B = V Lambda V^T</span> (B is positive semi-definite if distances are Euclidean)</div>
+              <strong>Step 4 &mdash; Extract coordinates:</strong>
+              <div class="deriv-step"><span class="mi">Y = V_k Lambda_k^(1/2)</span> (top k eigenvectors scaled by sqrt of eigenvalues)</div>
+              Then <span class="mi">Y Y^T = V_k Lambda_k V_k^T = B_approx</span>, giving <span class="mi">||y_i - y_j|| approx D_G[i,j]</span>.
+            </div>
+          </div>
+          <span class="pill">&#128161; MDS finds coordinates whose pairwise distances match D_G as closely as possible</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs3" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(3)">&#9654; Show MDS Embedding</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Full pipeline -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">4</div>
+          <div class="step-title">The Residual Variance Plot</div>
+          <div class="step-exp">How do we know if Isomap worked well, and how many output dimensions to keep? We plot the <strong>residual variance</strong> &mdash; how much of the geodesic distance information is lost at each number of dimensions. The elbow of this curve tells us the intrinsic dimensionality of the manifold.</div>
+          <div class="math-block">
+            <div class="formula">R^2(d) = 1 - corr^2(D_G, D_Y(d))<br><br>D_Y(d) = Euclidean distances in d-dim embedding<br>corr = Pearson correlation coefficient</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              The residual variance R^2(d) measures how well the d-dimensional embedding preserves the original geodesic distances:<br>
+              <div class="deriv-step"><span class="mi">corr(D_G, D_Y)</span>: Pearson correlation between all pairs of geodesic distances and all pairs of embedding distances</div>
+              <div class="deriv-step"><span class="mi">R^2 = 1 - corr^2</span>: residual &mdash; how much is NOT explained by the embedding</div>
+              <strong>Reading the plot:</strong>
+              <div class="deriv-step">R^2 near 0: almost perfect preservation of geodesic distances</div>
+              <div class="deriv-step">R^2 near 1: very poor preservation</div>
+              <div class="deriv-step">The "elbow": where adding more dimensions stops helping much. This is the intrinsic dimensionality of the data manifold.</div>
+              For a Swiss Roll (a 2D sheet rolled up in 3D), R^2 should drop to near 0 at d=2 and stay flat &mdash; confirming the manifold is truly 2-dimensional.
+            </div>
+          </div>
+          <span class="pill">&#128161; The elbow of R^2 reveals the true intrinsic dimensionality of the data</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs4" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(4)">&#9654; Draw Residual Variance</button>
+        </div>
+      </div>
+
+      <!-- STEP 5: Geodesic vs Euclidean -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">5</div>
+          <div class="step-title">Geodesic vs Euclidean: Side by Side</div>
+          <div class="step-exp">The entire power of Isomap comes down to this single comparison: geodesic distance vs Euclidean distance. On a curved manifold these are very different. PCA uses Euclidean and gets the wrong answer. Isomap uses geodesic and correctly unfolds the manifold. This step visualises exactly what changes and why it matters.</div>
+          <div class="math-block">
+            <div class="formula">PCA uses:    D_E[i,j] = ||x_i - x_j||<br>Isomap uses: D_G[i,j] = shortest path in G<br><br>On flat data: D_G approx D_E (same result)<br>On curved data: D_G >> D_E (very different)</div>
+            <div class="derivation">
+              <strong>When do they agree?</strong><br><br>
+              On flat, linear data (e.g., a Gaussian cloud), the shortest graph path between two points approximates the straight-line distance. On such data, Isomap and PCA give essentially the same result.
+              <div class="deriv-step">Flat data: Isomap = PCA = MDS (same embedding)</div>
+              <div class="deriv-step">Curved manifold: Isomap unrolls correctly, PCA fails</div>
+              <strong>The failure mode of Isomap:</strong>
+              <div class="deriv-step">If k is too small: the graph disconnects, and some geodesic paths become infinite</div>
+              <div class="deriv-step">If k is too large: "short-circuit" edges jump across the manifold, corrupting geodesics</div>
+              <div class="deriv-step">Noisy data: edges may connect distant manifold regions</div>
+              <strong>Choosing k:</strong> try several values of k and look for stability in the embedding. The residual variance plot also guides this.
+            </div>
+          </div>
+          <span class="pill">&#128161; If k is too large, short-circuit edges destroy the geodesic approximation</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs5" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(5)">&#9654; Compare Distances</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROPERTIES -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">Reference</span>
+      <h2>Key Properties of Isomap</h2>
+    </div>
+    <div class="props-grid">
+      <div class="prop-card">
+        <h4>&#10003; Strengths</h4>
+        <ul>
+          <li>Correctly unfolds curved manifolds (Swiss Roll, S-curve)</li>
+          <li>Global structure preserved (unlike t-SNE)</li>
+          <li>Deterministic: same result every run</li>
+          <li>Residual variance plot reveals intrinsic dimension</li>
+          <li>Simple and interpretable: graph + MDS</li>
+          <li>Can project new points (via Nystrom extension)</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>&#10007; Limitations</h4>
+        <ul>
+          <li>Sensitive to k: too small = disconnected graph, too large = short-circuits</li>
+          <li>Fails on non-convex manifolds (e.g., a torus or a holed shape)</li>
+          <li>O(n^2) memory for distance matrix</li>
+          <li>Slow: O(n^2 log n) for Dijkstra + O(n^2 d) for eigen decomposition</li>
+          <li>Noisy data can create incorrect graph connections</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>&#8987; When to Use Isomap</h4>
+        <ul>
+          <li>Data lies on a smooth, convex manifold</li>
+          <li>You want to discover the true intrinsic dimension</li>
+          <li>Global structure matters (t-SNE distorts it)</li>
+          <li>Medium datasets (under ~5000 points)</li>
+          <li>When you need a deterministic, reproducible embedding</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>&#127758; Real-World Uses</h4>
+        <ul>
+          <li>Face images (pose + lighting manifold)</li>
+          <li>Handwritten digit shape manifolds</li>
+          <li>Robotics: configuration space exploration</li>
+          <li>Climate: discovering modes of variability</li>
+          <li>Molecular conformations in drug discovery</li>
+        </ul>
+      </div>
+    </div>
+    <table class="cmp-table">
+      <tr>
+        <th>Property</th>
+        <th><span class="tag tag-pca">PCA</span></th>
+        <th><span class="tag tag-iso">Isomap</span></th>
+        <th><span class="tag tag-tsne">t-SNE</span></th>
+      </tr>
+      <tr><td>Distance used</td><td>Euclidean</td><td>Geodesic (graph)</td><td>Probabilistic (Gaussian)</td></tr>
+      <tr><td>Linear/Non-linear</td><td>Linear</td><td>Non-linear</td><td>Non-linear</td></tr>
+      <tr><td>Global structure</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Deterministic</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+      <tr><td>Speed</td><td>Fast O(nd^2)</td><td>Medium O(n^2 log n)</td><td>Slow O(n^2)</td></tr>
+      <tr><td>Handles Swiss Roll</td><td>No</td><td>Yes (perfectly)</td><td>Yes (approximately)</td></tr>
+      <tr><td>Key hyperparameter</td><td>None</td><td>k (neighbours)</td><td>Perplexity</td></tr>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- EXPLORER -->
+<section class="sec">
+  <div class="wrap">
+    <div class="explorer-wrap reveal">
+      <div class="explorer-hd">
+        <span class="eyebrow">Interactive Demo</span>
+        <h2>Isomap Explorer</h2>
+        <p>Watch the full Isomap pipeline animate &mdash; from neighbourhood graph through Dijkstra shortest paths to the final MDS embedding. Compare with PCA to see exactly where geodesic distance wins.</p>
+      </div>
+      <div class="ds-picker" id="ds-picker">
+        <button class="ds-btn active" data-ds="swiss">&#129360; Swiss Roll</button>
+        <button class="ds-btn" data-ds="scurve">&#128312; S-Curve</button>
+        <button class="ds-btn" data-ds="moons">&#127769; Two Moons</button>
+        <button class="ds-btn" data-ds="blobs">&#128309; Gaussian Blobs</button>
+      </div>
+      <div id="ds-info"></div>
+      <div id="iso-warn" role="status" style="color:#f59e0b;font-size:12px;min-height:16px;margin:-14px 0 18px"></div>
+      <div class="ex-layout">
+        <div>
+          <canvas id="ex-cvs"></canvas>
+          <div class="phase-bar" id="phase-bar">
+            <div class="phase-dot active" data-p="0"></div>
+            <div class="phase-dot" data-p="1"></div>
+            <div class="phase-dot" data-p="2"></div>
+            <div class="phase-dot" data-p="3"></div>
+          </div>
+          <div class="param-row">
+            <label>Neighbours k:</label>
+            <input type="range" id="k-slider" min="4" max="20" value="8" oninput="onKChange()">
+            <span class="param-val" id="k-val">8</span>
+          </div>
+          <div class="ex-controls">
+            <button class="ctrl-btn primary" id="play-btn" onclick="togglePlay()">&#9654; Play Pipeline</button>
+            <button class="ctrl-btn" onclick="restartEx()">&#8635; Restart</button>
+            <button class="ctrl-btn" id="speed-btn" onclick="toggleSpeed()">1x speed</button>
+            <button class="ctrl-btn" id="cmp-btn" onclick="toggleCompare()">Show PCA</button>
+            <span id="phase-label-text"></span>
+          </div>
+        </div>
+        <div class="deriv-panel">
+          <div class="dp-eyebrow" id="dp-eyebrow">AWAITING INPUT</div>
+          <div class="dp-title" id="dp-title">Select a dataset and press Play</div>
+          <div class="dp-formula" id="dp-formula">D_G = shortest_paths(G)</div>
+          <div class="dp-body" id="dp-body">The Isomap pipeline will animate through 4 phases. Each phase shows the relevant formula and computed values from the chosen dataset.</div>
+          <div class="dp-numeric" id="dp-numeric">No data yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- QUIZ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="quiz-wrap reveal">
+      <div class="quiz-hd">
+        <span class="eyebrow">Test Yourself</span>
+        <h2>Quick Quiz</h2>
+        <p>Six questions on Isomap &mdash; the geodesic idea, Dijkstra's role, MDS, and when to use it.</p>
+      </div>
+      <div id="quiz-container"></div>
+      <button class="quiz-submit" id="quiz-sub" onclick="submitQuiz()">Submit Answers</button>
+      <div class="quiz-result" id="quiz-result">
+        <div class="score-big" id="score-num">0/6</div>
+        <div class="score-sub" id="score-lbl"></div>
+        <button class="quiz-submit" onclick="resetQuiz()">Try Again</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  <div style="margin-bottom:16px">
+    <a href="section-umap.html" style="color:var(--soft);text-decoration:none;margin-right:32px">&larr; UMAP</a>
+    <a href="dashboard.html" style="color:var(--soft);text-decoration:none;margin-right:32px">Dashboard</a>
+    <a href="section-lda.html" style="color:var(--accent);text-decoration:none">LDA &rarr;</a>
+  </div>
+  MANIFOLD &middot; Section 03F &middot; Isomap
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════ */
+function seededRNG(seed){
+  var s=seed>>>0;
+  return function(){s=Math.imul(1664525,s)+1013904223>>>0;return s/4294967296;};
+}
+function randn(rng){
+  var u=Math.max(rng(),1e-10),v=rng();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function eio(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+function dist2(a,b){
+  var s=0;
+  for(var i=0;i<a.length;i++){var d=a[i]-b[i];s+=d*d;}
+  return Math.sqrt(s);
+}
+
+/* ═══════════════════════════════════════
+   ISOMAP MATH
+═══════════════════════════════════════ */
+function buildKNN(data,k){return MCore.symKNN(data,k);   // UNDIRECTED kNN graph (an edge if either point is a neighbour of the other)
+}
+
+function dijkstraAll(knn,n){
+  var D=MCore.dijkstraAll(knn);
+  return D.map(function(r){var o=new Float64Array(n);for(var j=0;j<n;j++)o[j]=isFinite(r[j])?r[j]:1e18;return o;});
+}
+
+function classicalMDS(D,dims){
+  // exact top-eigenvalue MDS (handles the indefinite B that geodesic distances can produce)
+  var n=D.length,maxD=0,i,j;
+  for(i=0;i<n;i++)for(j=0;j<n;j++)if(D[i][j]<1e17&&D[i][j]>maxD)maxD=D[i][j];
+  var Df=D.map(function(r){return Array.prototype.map.call(r,function(v){return v>1e17?maxD*2:v;});});
+  var r=MCore.classicalMDS(Df,dims);return{Y:r.Y,lambdas:r.lambdas};
+}
+
+function computeIsomap(data,k){
+  // k is kept exactly as chosen: too-small k really does disconnect the graph (a lesson of this page) — we flag it.
+  var r=MCore.isomap(data,k,{autoK:false});
+  return{knn:r.knn,D:r.D,Y:r.Y,lambdas:r.lambdas,maxD:r.maxD,disconnected:r.disconnected};
+}
+
+function computePCA2(data){return MCore.pca(data,2).projected;}
+
+/* ═══════════════════════════════════════
+   DATASETS
+═══════════════════════════════════════ */
+function genSwiss(){
+  var rng=seededRNG(321);
+  var data=[],labels=[];
+  for(var i=0;i<120;i++){
+    var t=1.5*Math.PI*(1+2*rng()),h=12*rng();
+    data.push([t*Math.cos(t),h,t*Math.sin(t)]);
+    labels.push(Math.min(2,Math.floor(h/4)));
+  }
+  return{name:'Swiss Roll',data:data,labels:labels,colors:['#f59e0b','#10b981','#f43f5e'],cn:['Low','Mid','High'],
+    desc:'120 points · 3D Swiss Roll · Isomap unrolls perfectly · PCA collapses it'};
+}
+function genSCurve(){
+  var rng=seededRNG(555);
+  var data=[],labels=[];
+  for(var i=0;i<100;i++){
+    var t=3*Math.PI*(rng()-0.5),h=10*rng();
+    var x=Math.sin(t),z=Math.sign(t)*(Math.cos(t)-1);
+    data.push([x,h,z]);
+    labels.push(Math.min(2,Math.floor((t+4.8)/3.2)));
+  }
+  return{name:'S-Curve',data:data,labels:labels,colors:['#8b5cf6','#f59e0b','#00d4ff'],cn:['Left','Middle','Right'],
+    desc:'100 points · 3D S-Curve · Classic manifold benchmark'};
+}
+function genMoons(){
+  var rng=seededRNG(456);
+  var data=[],labels=[];
+  for(var i=0;i<100;i++){
+    var lbl=i<50?0:1,angle=Math.PI*rng(),r=1+randn(rng)*0.08;
+    if(lbl===0)data.push([r*Math.cos(angle),r*Math.sin(angle),0]);
+    else data.push([1-r*Math.cos(angle),0.5-r*Math.sin(angle),0]);
+    labels.push(lbl);
+  }
+  return{name:'Two Moons',data:data,labels:labels,colors:['#00d4ff','#f43f5e'],cn:['Upper','Lower'],
+    desc:'100 points · 2D crescents (in 3D) · Tests non-linear separation'};
+}
+function genBlobs(){
+  var rng=seededRNG(789);
+  var centers=[[4,1,2],[0-2,4,0-1],[0,0-3,2],[0-4,0-2,0-3]];
+  var data=[],labels=[];
+  for(var c=0;c<4;c++)for(var i=0;i<25;i++){
+    data.push(centers[c].map(function(m){return m+randn(rng)*0.8;}));
+    labels.push(c);
+  }
+  return{name:'Gaussian Blobs',data:data,labels:labels,colors:['#00d4ff','#f43f5e','#10b981','#f59e0b'],cn:['A','B','C','D'],
+    desc:'100 points · 4 Gaussian clusters · Isomap and PCA agree on linear data'};
+}
+
+var DATASETS={swiss:genSwiss(),scurve:genSCurve(),moons:genMoons(),blobs:genBlobs()};
+
+/* ═══════════════════════════════════════
+   STEP CANVAS DEMO DATA
+═══════════════════════════════════════ */
+// Generate a small 2D Swiss Roll for step demos
+var rngS=seededRNG(42);
+var SWISS2D={pts:[],labels:[]};
+for(var _i=0;_i<50;_i++){
+  var _t=1.5*Math.PI*(1+2*rngS());
+  SWISS2D.pts.push([_t*Math.cos(_t),_t*Math.sin(_t)]);
+  SWISS2D.labels.push(Math.min(2,Math.floor((_t-1.5*Math.PI)/(Math.PI))));
+}
+var SWISS2D_COLORS=['#f59e0b','#10b981','#f43f5e'];
+
+function makeCoords2D(pts,pad,W,H){
+  var allX=pts.map(function(p){return p[0];});
+  var allY=pts.map(function(p){return p[1];});
+  var minX=Math.min.apply(null,allX),maxX=Math.max.apply(null,allX);
+  var minY=Math.min.apply(null,allY),maxY=Math.max.apply(null,allY);
+  var rx=(maxX-minX)*0.08||0.5,ry=(maxY-minY)*0.08||0.5;
+  minX-=rx;maxX+=rx;minY-=ry;maxY+=ry;
+  var cW=W-2*pad,cH=H-2*pad;
+  return{
+    sx:function(x){return pad+(x-minX)/(maxX-minX)*cW;},
+    sy:function(y){return H-pad-(y-minY)/(maxY-minY)*cH;}
+  };
+}
+
+function drawStep1(t){
+  var cvs=document.getElementById('cvs1');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  var pad=28,K=5;
+  var sc=makeCoords2D(SWISS2D.pts,pad,W,H);
+  var n=SWISS2D.pts.length;
+  // Build KNN for demo
+  var knn=buildKNN(SWISS2D.pts,K);
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(var gi=0;gi<=4;gi++){
+    ctx.beginPath();ctx.moveTo(pad+gi/4*(W-2*pad),pad);ctx.lineTo(pad+gi/4*(W-2*pad),H-pad);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pad,pad+gi/4*(H-2*pad));ctx.lineTo(W-pad,pad+gi/4*(H-2*pad));ctx.stroke();
+  }
+
+  // Draw edges (animate)
+  knn.forEach(function(nbrs,i){
+    nbrs.forEach(function(nb,ki){
+      var prog=clamp(et*(n+2)-i,0,1);
+      if(prog<=0)return;
+      ctx.globalAlpha=0.3*prog;
+      ctx.strokeStyle='#f59e0b';ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(sc.sx(SWISS2D.pts[i][0]),sc.sy(SWISS2D.pts[i][1]));
+      ctx.lineTo(sc.sx(SWISS2D.pts[nb.j][0]),sc.sy(SWISS2D.pts[nb.j][1]));
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+  });
+
+  // Points
+  SWISS2D.pts.forEach(function(p,i){
+    ctx.beginPath();ctx.arc(sc.sx(p[0]),sc.sy(p[1]),4,0,Math.PI*2);
+    ctx.fillStyle=SWISS2D_COLORS[SWISS2D.labels[i]]+'cc';ctx.fill();
+  });
+
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('kNN graph (k='+K+') on 2D Swiss Roll slice',W/2,H-2);
+}
+
+function drawStep2(t){
+  var cvs=document.getElementById('cvs2');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  var pad=28,K=5;
+  var sc=makeCoords2D(SWISS2D.pts,pad,W,H);
+  var n=SWISS2D.pts.length;
+  var knn=buildKNN(SWISS2D.pts,K);
+
+  // Pick source node 0
+  var src=0;
+  // Run Dijkstra animating
+  var dist=new Array(n).fill(1e18);
+  dist[src]=0;
+  var visited=new Array(n).fill(false);
+  var order=[];
+  for(var it=0;it<n;it++){
+    var u=-1,best=1e18;
+    for(var v=0;v<n;v++){if(!visited[v]&&dist[v]<best){best=dist[v];u=v;}}
+    if(u===-1)break;
+    visited[u]=true;order.push(u);
+    knn[u].forEach(function(nb){if(dist[u]+nb.d<dist[nb.j])dist[nb.j]=dist[u]+nb.d;});
+  }
+  var maxDist=Math.max.apply(null,dist.filter(function(d){return d<1e17;}));
+
+  // Graph edges dim
+  knn.forEach(function(nbrs,i){
+    nbrs.forEach(function(nb){
+      ctx.globalAlpha=0.12;ctx.strokeStyle='#f59e0b';ctx.lineWidth=0.8;
+      ctx.beginPath();ctx.moveTo(sc.sx(SWISS2D.pts[i][0]),sc.sy(SWISS2D.pts[i][1]));
+      ctx.lineTo(sc.sx(SWISS2D.pts[nb.j][0]),sc.sy(SWISS2D.pts[nb.j][1]));ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+  });
+
+  // Animate Dijkstra frontier
+  var numVisited=Math.floor(et*n);
+  order.slice(0,numVisited).forEach(function(u,oi){
+    var d=dist[u];
+    var progress=d/maxDist;
+    var r=Math.round(progress*244+(1-progress)*16);
+    var g=Math.round(progress*63+(1-progress)*212);
+    var b=Math.round(progress*94+(1-progress)*255);
+    ctx.beginPath();ctx.arc(sc.sx(SWISS2D.pts[u][0]),sc.sy(SWISS2D.pts[u][1]),5.5,0,Math.PI*2);
+    ctx.fillStyle='rgb('+r+','+g+','+b+')';ctx.fill();
+  });
+
+  // Source node
+  ctx.beginPath();ctx.arc(sc.sx(SWISS2D.pts[src][0]),sc.sy(SWISS2D.pts[src][1]),8,0,Math.PI*2);
+  ctx.fillStyle='#fff';ctx.fill();
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.stroke();
+
+  // Colorbar
+  var lx=W-22,lh=H*0.5,ly=(H-lh)/2;
+  var lg=ctx.createLinearGradient(0,ly,0,ly+lh);
+  lg.addColorStop(0,'rgb(244,63,94)');lg.addColorStop(1,'rgb(16,212,255)');
+  ctx.fillStyle=lg;ctx.fillRect(lx-8,ly,8,lh);
+  ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='9px JetBrains Mono,monospace';
+  ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('far',lx+2,ly+4);ctx.fillText('near',lx+2,ly+lh-4);
+
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('Dijkstra from white node: colour = geodesic distance ('+numVisited+'/'+n+' visited)',W/2,H-2);
+}
+
+function drawStep3(t){
+  var cvs=document.getElementById('cvs3');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  // Show left: original Swiss roll, right: Isomap embedding
+  var K=6;
+  var knn=buildKNN(SWISS2D.pts,K);
+  var D=dijkstraAll(knn,SWISS2D.pts.length);
+  var mds=classicalMDS(D,2);
+  var embedded=mds.Y;
+  var half=(W-16)/2;
+  var pad=24;
+  var sc1=makeCoords2D(SWISS2D.pts,pad,half,H);
+  var sc2=makeCoords2D(embedded,pad,half,H);
+
+  // Left: original
+  SWISS2D.pts.forEach(function(p,i){
+    ctx.beginPath();ctx.arc(sc1.sx(p[0]),sc1.sy(p[1]),4,0,Math.PI*2);
+    ctx.fillStyle=SWISS2D_COLORS[SWISS2D.labels[i]]+'cc';ctx.fill();
+  });
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='bold 11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('Original 2D Roll',half/2,4);
+
+  // Arrow
+  ctx.globalAlpha=et;
+  ctx.fillStyle='#f59e0b';ctx.font='20px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('->',W/2,H/2-6);
+  ctx.font='9px JetBrains Mono,monospace';ctx.fillStyle='rgba(245,158,11,0.7)';
+  ctx.fillText('MDS',W/2,H/2+10);
+  ctx.globalAlpha=1;
+
+  // Right: Isomap
+  var ox=half+16;
+  embedded.forEach(function(p,i){
+    ctx.globalAlpha=et;
+    ctx.beginPath();ctx.arc(ox+sc2.sx(p[0]),sc2.sy(p[1]),4,0,Math.PI*2);
+    ctx.fillStyle=SWISS2D_COLORS[SWISS2D.labels[i]]+'cc';ctx.fill();
+    ctx.globalAlpha=1;
+  });
+  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='bold 11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('Isomap Embedding',ox+half/2,4);
+
+  ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='10px DM Sans,sans-serif';
+  ctx.textBaseline='bottom';ctx.fillText('Colours preserved = manifold unrolled correctly',W/2,H-2);
+}
+
+function drawStep4(t){
+  var cvs=document.getElementById('cvs4');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  // Synthetic residual variance plot (3D Swiss roll: intrinsic dim = 2)
+  var pl=52,pr=20,pt=32,pb=44,cW=W-pl-pr,cH=H-pt-pb;
+  var dims=[1,2,3,4,5];
+  var residuals=[0.72,0.04,0.02,0.02,0.01];
+
+  ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(pl,pt);ctx.lineTo(pl,H-pb);ctx.lineTo(W-pr,H-pb);ctx.stroke();
+
+  [0,0.25,0.5,0.75,1].forEach(function(v){
+    var y=pt+cH-v*cH;
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(W-pr,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v.toFixed(2),pl-4,y);
+  });
+
+  var step=cW/(dims.length-1);
+  dims.forEach(function(d,i){
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(d,pl+i*step,H-pb+4);
+  });
+
+  // Draw line
+  var numPts=Math.floor(et*(dims.length+1));
+  ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;ctx.beginPath();
+  residuals.slice(0,numPts).forEach(function(r,i){
+    var px=pl+i*step,py=pt+cH-r*cH;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Points
+  residuals.slice(0,numPts).forEach(function(r,i){
+    var px=pl+i*step,py=pt+cH-r*cH;
+    ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fillStyle=i===1?'#f59e0b':'#10b981';ctx.fill();
+    if(et>0.4){
+      ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='10px JetBrains Mono,monospace';
+      ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(r.toFixed(2),px,py-7);
+    }
+  });
+
+  // Elbow annotation
+  if(et>0.55){
+    ctx.globalAlpha=clamp((et-0.55)/0.35,0,1);
+    var ex=pl+step,ey=pt+cH-0.04*cH;
+    ctx.strokeStyle='rgba(245,158,11,0.4)';ctx.lineWidth=1;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(ex,pt);ctx.lineTo(ex,H-pb);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f59e0b';ctx.font='bold 11px DM Sans,sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('Elbow at d=2 -> intrinsic dim = 2',ex+6,pt+4);
+    ctx.globalAlpha=1;
+  }
+
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('Residual variance R^2(d) for Swiss Roll (intrinsic dim = 2)',W/2,H-2);
+}
+
+function drawStep5(t){
+  var cvs=document.getElementById('cvs5');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  // Show two points: geodesic path vs Euclidean shortcut
+  var pad=32,K=5;
+  var sc=makeCoords2D(SWISS2D.pts,pad,W,H);
+  var knn=buildKNN(SWISS2D.pts,K);
+
+  // Draw faint edges
+  knn.forEach(function(nbrs,i){
+    nbrs.forEach(function(nb){
+      ctx.globalAlpha=0.1;ctx.strokeStyle='#f59e0b';ctx.lineWidth=0.8;
+      ctx.beginPath();ctx.moveTo(sc.sx(SWISS2D.pts[i][0]),sc.sy(SWISS2D.pts[i][1]));
+      ctx.lineTo(sc.sx(SWISS2D.pts[nb.j][0]),sc.sy(SWISS2D.pts[nb.j][1]));ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+  });
+
+  // All points
+  SWISS2D.pts.forEach(function(p,i){
+    ctx.beginPath();ctx.arc(sc.sx(p[0]),sc.sy(p[1]),3,0,Math.PI*2);
+    ctx.fillStyle=SWISS2D_COLORS[SWISS2D.labels[i]]+'88';ctx.fill();
+  });
+
+  // Pick two far-apart points on the roll
+  var src=2,tgt=47;
+  // Euclidean line
+  ctx.globalAlpha=et;
+  ctx.strokeStyle='#f43f5e';ctx.lineWidth=2.5;ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  ctx.moveTo(sc.sx(SWISS2D.pts[src][0]),sc.sy(SWISS2D.pts[src][1]));
+  ctx.lineTo(sc.sx(SWISS2D.pts[tgt][0]),sc.sy(SWISS2D.pts[tgt][1]));
+  ctx.stroke();ctx.setLineDash([]);
+
+  // Find geodesic path (trace back through Dijkstra)
+  if(et>0.3){
+    var D=dijkstraAll(knn,SWISS2D.pts.length);
+    // Reconstruct path from src to tgt greedily
+    var path=[tgt];
+    var cur=tgt;
+    for(var step2=0;step2<50;step2++){
+      if(cur===src)break;
+      var best=cur,bestD=D[src][cur];
+      knn[cur].forEach(function(nb){if(D[src][nb.j]<bestD){bestD=D[src][nb.j];best=nb.j;}});
+      if(best===cur)break;
+      cur=best;path.push(cur);
+    }
+    path.reverse();
+    var numSegs=Math.floor(clamp((et-0.3)/0.5,0,1)*path.length);
+    ctx.globalAlpha=clamp((et-0.3)/0.4,0,1);
+    ctx.strokeStyle='#f59e0b';ctx.lineWidth=3;ctx.beginPath();
+    path.slice(0,numSegs+1).forEach(function(idx,i){
+      var px=sc.sx(SWISS2D.pts[idx][0]),py=sc.sy(SWISS2D.pts[idx][1]);
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+
+  // Source and target
+  [src,tgt].forEach(function(idx){
+    ctx.beginPath();ctx.arc(sc.sx(SWISS2D.pts[idx][0]),sc.sy(SWISS2D.pts[idx][1]),8,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // Legend
+  ctx.fillStyle='#f43f5e';ctx.font='bold 11px DM Sans,sans-serif';ctx.textAlign='left';
+  ctx.fillText('-- Euclidean (wrong: cuts through roll)',pad,H-20);
+  if(et>0.3){ctx.fillStyle='#f59e0b';ctx.fillText('-- Geodesic path (correct: stays on surface)',pad,H-6);}
+}
+
+function animStep(n){
+  var fns=[null,drawStep1,drawStep2,drawStep3,drawStep4,drawStep5];
+  var durs=[0,2000,2400,2200,2200,2400];
+  var start=null;
+  function frame(ts){
+    if(!start)start=ts;
+    var t=Math.min((ts-start)/durs[n],1);
+    fns[n](t);
+    if(t<1)requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ═══════════════════════════════════════
+   EXPLORER
+═══════════════════════════════════════ */
+var EX=null,exT=0,exRunning=false,exSpeed=1,exLastTs=null,exRafId=null,curDs='swiss',showPCA=false;
+var PHASE_DUR=[2.5,3.5,3.5,4.0];
+var TOTAL_T=PHASE_DUR.reduce(function(s,v){return s+v;},0);
+var PHASE_NAMES=['Raw Data','kNN Graph','Geodesic Distances (Dijkstra)','Isomap Embedding (MDS)'];
+
+function getPhase(gt){
+  var cum=0;
+  for(var p=0;p<PHASE_DUR.length;p++){
+    var end=cum+PHASE_DUR[p];
+    if(gt<=end)return{phase:p,lt:(gt-cum)/PHASE_DUR[p]};
+    cum=end;
+  }
+  return{phase:PHASE_DUR.length-1,lt:1};
+}
+
+function initExplorer(dsKey){
+  curDs=dsKey;
+  var ds=DATASETS[dsKey];
+  var k=parseInt(document.getElementById('k-slider').value);
+  document.getElementById('ds-info').textContent=ds.data.length+' pts · '+ds.data[0].length+'D · k='+k+' · '+ds.desc;
+  document.querySelectorAll('.ds-btn').forEach(function(b){b.classList.toggle('active',b.dataset.ds===dsKey);});
+  var iso=computeIsomap(ds.data,k);
+  var pca=computePCA2(ds.data);
+  EX={ds:ds,iso:iso,pca:pca,k:k};
+  document.getElementById('iso-warn').textContent=iso.disconnected?'⚠ k='+k+' leaves the neighbourhood graph DISCONNECTED — some geodesic distances are infinite (drawn here as 2× the largest finite distance, which is artificial). Increase k.':'';
+  exT=0;exRunning=false;exLastTs=null;showPCA=false;
+  document.getElementById('play-btn').innerHTML='&#9654; Play Pipeline';
+  document.getElementById('cmp-btn').textContent='Show PCA';
+  drawExplorer(0);updateDeriv(0);updatePhaseBar(0);
+}
+
+function togglePlay(){
+  if(exT>=TOTAL_T-0.05)exT=0;
+  exRunning=!exRunning;
+  document.getElementById('play-btn').innerHTML=exRunning?'&#9646;&#9646; Pause':'&#9654; Continue';
+  if(exRunning){exLastTs=null;requestAnimationFrame(exLoop);}
+}
+function restartEx(){
+  exT=0;exRunning=false;if(exRafId)cancelAnimationFrame(exRafId);
+  document.getElementById('play-btn').innerHTML='&#9654; Play Pipeline';
+  drawExplorer(0);updateDeriv(0);updatePhaseBar(0);
+}
+function toggleSpeed(){
+  var spds=[1,2,0.5],lbls=['1x speed','2x speed','0.5x speed'];
+  var idx=(spds.indexOf(exSpeed)+1)%3;
+  exSpeed=spds[idx];
+  document.getElementById('speed-btn').textContent=lbls[idx];
+}
+function toggleCompare(){
+  showPCA=!showPCA;
+  document.getElementById('cmp-btn').textContent=showPCA?'Show Isomap':'Show PCA';
+  if(!exRunning)drawExplorer(exT);
+}
+function onKChange(){
+  var k=document.getElementById('k-slider').value;
+  document.getElementById('k-val').textContent=k;
+  initExplorer(curDs);
+}
+
+function exLoop(ts){
+  if(!exRunning)return;
+  if(exLastTs!==null){var dt=(ts-exLastTs)/1000*exSpeed;exT=Math.min(exT+dt,TOTAL_T);}
+  exLastTs=ts;
+  drawExplorer(exT);updateDeriv(exT);updatePhaseBar(exT);
+  if(exT>=TOTAL_T){exRunning=false;document.getElementById('play-btn').innerHTML='&#9654; Play Pipeline';return;}
+  exRafId=requestAnimationFrame(exLoop);
+}
+
+function updatePhaseBar(gt){
+  var ph=getPhase(gt);
+  document.querySelectorAll('.phase-dot').forEach(function(d,i){
+    d.classList.remove('active','done');
+    if(i===ph.phase)d.classList.add('active');
+    else if(i<ph.phase)d.classList.add('done');
+  });
+  document.getElementById('phase-label-text').textContent=PHASE_NAMES[ph.phase]||'';
+}
+
+function exScatter(ctx,W,H,pts,labels,colors,cn,title,xl,yl){
+  var pl=54,pr=90,pt2=44,pb=44,cW=W-pl-pr,cH=H-pt2-pb;
+  if(!pts||!pts.length)return{sx:function(x){return x;},sy:function(y){return y;},pl:pl,cW:cW,pt2:pt2,cH:cH};
+  var allX=pts.map(function(p){return p[0];});
+  var allY=pts.map(function(p){return p[1];});
+  var minX=Math.min.apply(null,allX),maxX=Math.max.apply(null,allX);
+  var minY=Math.min.apply(null,allY),maxY=Math.max.apply(null,allY);
+  var rx=(maxX-minX)*0.1||0.5,ry=(maxY-minY)*0.1||0.5;
+  minX-=rx;maxX+=rx;minY-=ry;maxY+=ry;
+  function sx(x){return pl+(x-minX)/(maxX-minX)*cW;}
+  function sy(y){return H-pb-(y-minY)/(maxY-minY)*cH;}
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(var gi=0;gi<=5;gi++){
+    ctx.beginPath();ctx.moveTo(pl+gi/5*cW,pt2);ctx.lineTo(pl+gi/5*cW,H-pb);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pl,pt2+gi/5*cH);ctx.lineTo(W-pr,pt2+gi/5*cH);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.strokeRect(pl,pt2,cW,cH);
+  pts.forEach(function(p,i){
+    var col=colors[labels[i]]||'#f59e0b';
+    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),5,0,Math.PI*2);
+    ctx.fillStyle=col+'cc';ctx.fill();
+    ctx.strokeStyle=col+'66';ctx.lineWidth=0.8;ctx.stroke();
+  });
+  var uniq=[...new Set(labels)];
+  uniq.forEach(function(c,i){
+    var lx=W-pr+12,ly=pt2+16+i*22;
+    ctx.beginPath();ctx.arc(lx+5,ly,5,0,Math.PI*2);
+    ctx.fillStyle=colors[c]||'#f59e0b';ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='11px DM Sans,sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(cn[c]||('C'+c),lx+14,ly);
+  });
+  ctx.fillStyle='rgba(255,255,255,0.72)';ctx.font='bold 13px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(title,pl+cW/2,pt2-8);
+  ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textBaseline='bottom';ctx.fillText(xl||'Dim 1',pl+cW/2,H-4);
+  return{sx:sx,sy:sy,pl:pl,pr:pr,pt2:pt2,pb:pb,cW:cW,cH:cH,minX:minX,maxX:maxX,minY:minY,maxY:maxY};
+}
+
+function drawExplorer(gt){
+  var cvs=document.getElementById('ex-cvs');if(!cvs||!EX)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  var ph=getPhase(gt),phase=ph.phase,et=eio(clamp(ph.lt,0,1));
+  var ds=EX.ds,iso=EX.iso;
+
+  if(showPCA){
+    var pcaSc=exScatter(ctx,W,H,EX.pca,ds.labels,ds.colors,ds.cn,'PCA Projection — '+ds.name,'PC1','PC2');
+    ctx.fillStyle='rgba(0,212,255,0.1)';ctx.fillRect(pcaSc.pl,8,pcaSc.cW,24);
+    ctx.fillStyle='#00d4ff';ctx.font='11px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('PCA (linear — Euclidean distances)',pcaSc.pl+pcaSc.cW/2,20);
+    return;
+  }
+
+  var rawPts=ds.data.map(function(p){return p.slice(0,2);});
+
+  if(phase===0){
+    var sc0=exScatter(ctx,W,H,rawPts,ds.labels,ds.colors,ds.cn,'Raw Data (first 2 dims) — '+ds.name,'Feature 1','Feature 2');
+  } else if(phase===1){
+    var sc1=exScatter(ctx,W,H,rawPts,ds.labels,ds.colors,ds.cn,'Step 1: kNN Graph (k='+EX.k+')','Feature 1','Feature 2');
+    var n=ds.data.length;
+    iso.knn.forEach(function(nbrs,i){
+      var prog=clamp(et*(n+2)-i,0,1);if(prog<=0)return;
+      nbrs.forEach(function(nb){
+        ctx.globalAlpha=0.25*prog;
+        ctx.strokeStyle='#f59e0b';ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(sc1.sx(rawPts[i][0]),sc1.sy(rawPts[i][1]));
+        ctx.lineTo(sc1.sx(rawPts[nb.j][0]),sc1.sy(rawPts[nb.j][1]));
+        ctx.stroke();ctx.globalAlpha=1;
+      });
+    });
+  } else if(phase===2){
+    var sc2=exScatter(ctx,W,H,rawPts,ds.labels,ds.colors,ds.cn,'Step 2: Geodesic Distances','Feature 1','Feature 2');
+    // Colour points by geodesic distance from point 0
+    var maxGeo=0;
+    var n2=ds.data.length;
+    for(var j=0;j<n2;j++)if(iso.D[0][j]<1e17&&iso.D[0][j]>maxGeo)maxGeo=iso.D[0][j];
+    var numColoured=Math.floor(et*n2);
+    rawPts.slice(0,numColoured).forEach(function(p,i){
+      var d=iso.D[0][i];
+      var prog=d/maxGeo;
+      var r=Math.round(prog*244+(1-prog)*16),g2=Math.round(prog*63+(1-prog)*212),b=Math.round(prog*94+(1-prog)*255);
+      ctx.beginPath();ctx.arc(sc2.sx(p[0]),sc2.sy(p[1]),5.5,0,Math.PI*2);
+      ctx.fillStyle='rgb('+r+','+g2+','+b+')';ctx.fill();
+    });
+    // source
+    ctx.beginPath();ctx.arc(sc2.sx(rawPts[0][0]),sc2.sy(rawPts[0][1]),9,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2;ctx.stroke();
+  } else if(phase===3){
+    // Animate from raw to isomap
+    var rawFirst=ds.data.map(function(p){return p.slice(0,2);});
+    var embedded=iso.Y;
+    var animPts=rawFirst.map(function(p,i){
+      return[lerp(p[0],embedded[i][0],et),lerp(p[1],embedded[i][1],et)];
+    });
+    var title2=et<0.4?'Projecting via MDS...':'Isomap Embedding — '+ds.name;
+    var xl2=et<0.4?'Feature 1':'Isomap-1';
+    var yl2=et<0.4?'Feature 2':'Isomap-2';
+    exScatter(ctx,W,H,animPts,ds.labels,ds.colors,ds.cn,title2,xl2,yl2);
+  }
+
+  // Mode badge
+  var bCol='#f59e0b';
+  var bLabel='Isomap (geodesic distances)';
+  ctx.fillStyle=bCol+'15';ctx.fillRect(54,8,W-54-90,24);
+  ctx.fillStyle=bCol;ctx.font='11px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(bLabel,W/2,20);
+}
+
+var DERIV_INFO=[
+  {ey:function(d){return 'PHASE 0 — RAW DATA';},
+   tt:function(d){return 'Dataset: '+d.name;},
+   fm:function(){return 'X in R^{n x d}';},
+   bd:function(d,e){return 'Raw data. Isomap will use the <strong>first step</strong> to connect nearby points into a graph.<br><br>Key parameter: <strong>k = '+e.k+'</strong> neighbours per point.<br><br>The graph must stay connected for Dijkstra to work across all point pairs.';},
+   nm:function(d,e){return 'n = '+d.data.length+'\nd = '+d.data[0].length+'\nk = '+e.k+'\nTotal edges: ~'+Math.floor(d.data.length*e.k/2)+'\n\nSample point:\n['+d.data[0].map(function(v){return v.toFixed(3);}).join(', ')+']';}
+  },
+  {ey:function(d){return 'PHASE 1 — kNN GRAPH';},
+   tt:function(d){return 'Step 1: Build Neighbourhood Graph';},
+   fm:function(){return 'w(i,j) = ||x_i - x_j||  if j in kNN(i)';},
+   bd:function(d,e){return 'Each point connects to its <strong>k='+e.k+' nearest neighbours</strong> by Euclidean distance. Edge weight = Euclidean distance.<br><br>This graph approximates the manifold surface. Short edges are valid manifold steps; long edges crossing the manifold interior are forbidden.';},
+   nm:function(d,e){
+     var shortest=1e18,longest=0;
+     e.iso.knn.forEach(function(nbrs){nbrs.forEach(function(nb){if(nb.d<shortest)shortest=nb.d;if(nb.d>longest)longest=nb.d;});});
+     return 'k = '+e.k+'\nNodes: '+d.data.length+'\nEdges: ~'+Math.floor(d.data.length*e.k/2)+'\n\nShortest edge: '+shortest.toFixed(3)+'\nLongest edge:  '+longest.toFixed(3)+'\n\nSmall edges -> on-surface\nLarge edges -> possible shortcircuit';
+   }
+  },
+  {ey:function(d){return 'PHASE 2 — GEODESIC DISTANCES';},
+   tt:function(d){return 'Step 2: Dijkstra All-Pairs';},
+   fm:function(){return 'D_G[i,j] = shortest path from i to j\nComplexity: O(n^2 log n)';},
+   bd:function(d,e){return 'Dijkstra\'s algorithm finds the shortest weighted path from every source node to every other node. Colours show geodesic distance from point 0.<br><br><strong>Geodesic vs Euclidean:</strong> on a curved manifold these can be very different.';},
+   nm:function(d,e){
+     var n=d.data.length;
+     var vals=[];for(var i=0;i<n;i++)if(e.iso.D[0][i]<1e17)vals.push(e.iso.D[0][i]);
+     vals.sort(function(a,b){return a-b;});
+     return 'Source: point 0\nReachable: '+vals.length+' / '+n+'\nMin geo dist: '+vals[1].toFixed(3)+'\nMax geo dist: '+vals[vals.length-1].toFixed(3)+'\nMean geo dist: '+(vals.reduce(function(s,v){return s+v;},0)/vals.length).toFixed(3)+'\n\nIf unreachable -> increase k';
+   }
+  },
+  {ey:function(d){return 'PHASE 3 — MDS EMBEDDING';},
+   tt:function(d){return 'Step 3: Classical MDS';},
+   fm:function(){return 'B = -0.5*H*D_G^2*H\nY = V_k * Lambda_k^(1/2)';},
+   bd:function(d,e){return 'Double-centering converts the geodesic distance matrix to an inner product matrix B. Eigendecomposition of B gives coordinates whose pairwise distances match D_G as closely as possible.<br><br>Animate to see the roll unfolding.';},
+   nm:function(d,e){return 'Eigenvalues (variance in each dim):\nlambda_1 = '+e.iso.lambdas[0].toFixed(3)+'\nlambda_2 = '+e.iso.lambdas[1].toFixed(3)+'\n\nSample embedding coords:\n['+e.iso.Y[0].map(function(v){return v.toFixed(3);}).join(', ')+']\n['+e.iso.Y[1].map(function(v){return v.toFixed(3);}).join(', ')+']\n['+e.iso.Y[2].map(function(v){return v.toFixed(3);}).join(', ')+']';}
+  }
+];
+
+function updateDeriv(gt){
+  if(!EX)return;
+  var ph=getPhase(gt),d=DERIV_INFO[ph.phase];
+  document.getElementById('dp-eyebrow').textContent=d.ey(EX.ds);
+  document.getElementById('dp-title').textContent=d.tt(EX.ds);
+  document.getElementById('dp-formula').textContent=d.fm();
+  document.getElementById('dp-body').innerHTML=d.bd(EX.ds,EX);
+  document.getElementById('dp-numeric').textContent=d.nm(EX.ds,EX);
+}
+
+/* ═══════════════════════════════════════
+   QUIZ
+═══════════════════════════════════════ */
+var QUIZ=[
+  {q:"What is the key difference between the distance Isomap uses and the distance PCA uses?",
+   opts:["Isomap uses cosine similarity; PCA uses Euclidean distance","Isomap uses geodesic (graph shortest-path) distance; PCA uses straight-line Euclidean distance","Isomap uses probabilistic distances; PCA uses geometric distances","Isomap uses city-block (Manhattan) distance; PCA uses Euclidean distance"],
+   ans:1,exp:"PCA uses straight-line Euclidean distance between points, which can cut through the interior of a curved manifold. Isomap computes the shortest path through a neighbourhood graph, which is constrained to stay on the manifold surface. This geodesic distance correctly reflects how far apart two points are along the manifold, not through the space it's embedded in."},
+  {q:"In Isomap, what does the k parameter control?",
+   opts:["The number of output dimensions","The number of nearest neighbours each point connects to in the graph","The number of Dijkstra iterations to run","The number of eigenvalues to compute in MDS"],
+   ans:1,exp:"k controls how many nearest neighbours each data point connects to when building the neighbourhood graph. Too small k: the graph may become disconnected and some geodesic distances become infinite. Too large k: 'short-circuit' edges may connect points on distant parts of the manifold, corrupting the geodesic approximation."},
+  {q:"Why does Isomap use Dijkstra's algorithm?",
+   opts:["To find the eigenvectors of the covariance matrix","To sort the data points by their distance from the origin","To find the shortest path between every pair of points through the neighbourhood graph","To compute the probability that two points are neighbours"],
+   ans:2,exp:"Dijkstra's algorithm finds the shortest weighted path from one source node to all other nodes in a graph. Running it from every node gives an all-pairs shortest path matrix. In Isomap, these shortest paths through the graph approximate the true geodesic distances along the manifold surface."},
+  {q:"What does Isomap do with the geodesic distance matrix D_G?",
+   opts:["It applies PCA directly to D_G","It uses D_G as kernel weights for a neural network","It applies classical MDS: double-centering then eigendecomposition","It computes the gradient of D_G to find the manifold tangent space"],
+   ans:2,exp:"After computing geodesic distances, Isomap applies classical Multidimensional Scaling (MDS). Double-centering converts the squared distance matrix into an inner product matrix B. Eigendecomposition of B gives the embedding coordinates Y = V_k * sqrt(Lambda_k), whose pairwise Euclidean distances match the geodesic distances as closely as possible."},
+  {q:"You run Isomap on a Swiss Roll dataset and the residual variance R^2(d) drops to near zero at d=2 and stays flat. What does this tell you?",
+   opts:["The dataset has exactly 2 data points","The intrinsic dimensionality of the Swiss Roll manifold is 2","Isomap has failed — R^2 should never reach zero","The Swiss Roll is actually a flat 2D plane with no curvature"],
+   ans:1,exp:"The residual variance R^2(d) measures how well the d-dimensional embedding preserves geodesic distances. When R^2 drops to near zero at d=2 and adding more dimensions doesn't help, it means the data can be fully described in 2 dimensions — the manifold is intrinsically 2-dimensional. A Swiss Roll is a 2D sheet bent into 3D, so this result is exactly correct."},
+  {q:"Isomap fails to correctly embed a dataset shaped like a torus (a doughnut surface). Why?",
+   opts:["Dijkstra's algorithm cannot run on circular graphs","A torus is not a smooth manifold so MDS cannot be applied","A torus is non-convex — short-circuit edges can connect opposite sides of the hole, corrupting geodesic distances","Isomap requires the data to be in 2D before embedding"],
+   ans:2,exp:"Isomap assumes the manifold is convex — that the shortest path between any two surface points stays on the manifold. A torus has a hole, making it non-convex. With a large enough k, the neighbourhood graph creates edges that jump across the hole, making those geodesic paths incorrectly short. This 'short-circuit' problem causes the embedding to be distorted. Isomap works best on convex, simply-connected manifolds."}
+];
+var userAns={};
+function renderQuiz(){
+  document.getElementById('quiz-container').innerHTML=QUIZ.map(function(q,i){
+    return '<div class="quiz-q" id="qq'+i+'"><div class="q-num">Question '+(i+1)+' of '+QUIZ.length+'</div><div class="q-text">'+q.q+'</div><div class="opts">'+
+    q.opts.map(function(o,j){return '<button class="opt-btn" id="qq'+i+'o'+j+'" onclick="selOpt('+i+','+j+')">'+String.fromCharCode(65+j)+'. '+o+'</button>';}).join('')+
+    '</div><div class="feedback" id="fb'+i+'"></div></div>';
+  }).join('');
+}
+function selOpt(qi,oi){
+  if(userAns[qi]!==undefined)return;
+  QUIZ[qi].opts.forEach(function(_,j){var b=document.getElementById('qq'+qi+'o'+j);if(b)b.classList.remove('selected');});
+  var btn=document.getElementById('qq'+qi+'o'+oi);if(btn)btn.classList.add('selected');
+  userAns[qi]=oi;
+}
+function submitQuiz(){
+  if(Object.keys(userAns).length<QUIZ.length){alert('Please answer all '+QUIZ.length+' questions!');return;}
+  var score=0;
+  QUIZ.forEach(function(q,i){
+    var ua=userAns[i];
+    if(ua===q.ans)score++;
+    var okBtn=document.getElementById('qq'+i+'o'+q.ans);if(okBtn)okBtn.classList.add('correct-ans');
+    if(ua!==q.ans){var wBtn=document.getElementById('qq'+i+'o'+ua);if(wBtn)wBtn.classList.add('wrong-ans');}
+    q.opts.forEach(function(_,j){var b=document.getElementById('qq'+i+'o'+j);if(b)b.disabled=true;});
+    var qq=document.getElementById('qq'+i);if(qq)qq.classList.add(ua===q.ans?'correct':'incorrect');
+    var fb=document.getElementById('fb'+i);
+    if(fb){fb.textContent=(ua===q.ans?'Correct! ':'Incorrect. ')+q.exp;fb.className='feedback '+(ua===q.ans?'show-c':'show-w');}
+  });
+  document.getElementById('quiz-sub').style.display='none';
+  document.getElementById('quiz-result').style.display='block';
+  document.getElementById('score-num').textContent=score+'/'+QUIZ.length;
+  var lbls=['Keep reviewing!','Keep reviewing!','Getting there!','Good effort!','Nice work!','Excellent!','Perfect!'];
+  document.getElementById('score-lbl').textContent=lbls[Math.min(score,lbls.length-1)];
+}
+function resetQuiz(){
+  Object.keys(userAns).forEach(function(k){delete userAns[k];});
+  document.getElementById('quiz-result').style.display='none';
+  document.getElementById('quiz-sub').style.display='block';
+  renderQuiz();
+}
+
+/* ═══════════════════════════════════════
+   HERO CANVAS
+═══════════════════════════════════════ */
+function initHero(){
+  var cvs=document.getElementById('hero-cvs');
+  function resize(){cvs.width=window.innerWidth;cvs.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  var ctx=cvs.getContext('2d');
+  // Animate a spiral unfurling (Swiss Roll concept)
+  var rng2=seededRNG(42);
+  var N=80;
+  var pts=[];
+  for(var i=0;i<N;i++){
+    var t=1.5*Math.PI*(1+2*i/N);
+    var r=t/(1.5*Math.PI*3);
+    pts.push({ox:Math.cos(t)*r,oy:Math.sin(t)*r,vx:(rng2()-0.5)*0.002,vy:(rng2()-0.5)*0.002,a:0.15+rng2()*0.25,idx:i});
+  }
+  var frame2=0;
+  function frame(){
+    frame2++;
+    ctx.fillStyle='rgba(6,11,26,0.16)';ctx.fillRect(0,0,cvs.width,cvs.height);
+    var cx=cvs.width/2,cy=cvs.height/2,scale=Math.min(cvs.width,cvs.height)*0.38;
+    // Draw geodesic paths (straight line vs curve)
+    for(var i2=0;i2<pts.length-1;i2++){
+      var p=pts[i2],q=pts[i2+1];
+      var alpha=Math.round(p.a*0.4*255).toString(16).padStart(2,'0');
+      var prog=i2/N;
+      var r2=Math.round(prog*245+(1-prog)*16);
+      var g2=Math.round(prog*158+(1-prog)*212);
+      var b=Math.round(prog*11+(1-prog)*255);
+      ctx.beginPath();ctx.moveTo(cx+p.ox*scale,cy+p.oy*scale);ctx.lineTo(cx+q.ox*scale,cy+q.oy*scale);
+      ctx.strokeStyle='rgb('+r2+','+g2+','+b+')'+alpha;ctx.lineWidth=1.8;ctx.stroke();
+    }
+    for(var i3=0;i3<pts.length;i3++){
+      var p2=pts[i3];
+      var prog2=i3/N;
+      var r3=Math.round(prog2*245+(1-prog2)*16);
+      var g3=Math.round(prog2*158+(1-prog2)*212);
+      var b2=Math.round(prog2*11+(1-prog2)*255);
+      var alpha3=Math.round(p2.a*255).toString(16).padStart(2,'0');
+      ctx.beginPath();ctx.arc(cx+p2.ox*scale,cy+p2.oy*scale,2.5,0,Math.PI*2);
+      ctx.fillStyle='rgb('+r3+','+g3+','+b2+')'+alpha3;ctx.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+window.addEventListener('load',function(){
+  initHero();
+  for(var n=1;n<=5;n++){var c=document.getElementById('cvs'+n);if(c){c.width=600;c.height=390;}}
+  drawStep1(0);drawStep2(0);drawStep3(0);drawStep4(0);drawStep5(0);
+  var ec=document.getElementById('ex-cvs');if(ec){ec.width=680;ec.height=420;}
+  initExplorer('swiss');
+  document.getElementById('ds-picker').addEventListener('click',function(e){
+    var btn=e.target.closest('.ds-btn');
+    if(btn&&btn.dataset.ds)initExplorer(btn.dataset.ds);
+  });
+  var seen=new Set();
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting&&!seen.has(e.target.id)){
+        seen.add(e.target.id);
+        var n2=parseInt(e.target.id.replace('cvs',''));
+        if(n2>=1&&n2<=5)setTimeout(function(){animStep(n2);},350);
+      }
+    });
+  },{threshold:0.6});
+  for(var n3=1;n3<=5;n3++){var cv=document.getElementById('cvs'+n3);if(cv)obs.observe(cv);}
+  var revObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});
+  },{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(function(el){revObs.observe(el);});
+  window.addEventListener('scroll',function(){
+    var s=window.scrollY,tot=document.body.scrollHeight-window.innerHeight;
+    document.getElementById('prog').style.width=(s/tot*100)+'%';
+  });
+  renderQuiz();
+});
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>

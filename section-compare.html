@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare Techniques | MANIFOLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060b1a;--surface:rgba(255,255,255,0.03);--surface2:rgba(255,255,255,0.06);
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#dde8f5;--muted:#4e6a84;--soft:#7a9ab8;
+  --pca:#00d4ff;--tsne:#f43f5e;--umap:#10b981;--lda:#8b5cf6;--iso:#f59e0b;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden;min-height:100vh}
+#prog{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,#00d4ff,#10b981,#f59e0b);z-index:9999;transition:width .06s}
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:14px 40px;background:rgba(6,11,26,.95);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav a{color:var(--soft);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}.nav a:hover{color:#00d4ff}
+.nav-tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.1em}
+
+/* Page layout */
+.page{padding:80px 0 60px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 32px}
+
+/* Header */
+.page-hd{text-align:center;padding:48px 0 40px}
+.eyebrow{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#00d4ff;margin-bottom:18px}
+.page-hd h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5vw,58px);font-weight:700;margin-bottom:14px;background:linear-gradient(130deg,#fff 0%,#00d4ff 60%,#10b981 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.page-hd p{color:var(--soft);font-size:16px;max-width:520px;margin:0 auto}
+
+/* Dataset picker */
+.ds-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 28px;margin-bottom:24px}
+.ds-section h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:14px}
+.ds-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ds-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--soft);padding:8px 18px;border-radius:100px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ds-btn:hover{border-color:rgba(0,212,255,.4);color:#00d4ff}
+.ds-btn.active{background:rgba(0,212,255,.1);border-color:#00d4ff;color:#00d4ff}
+.ds-info{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-left:auto}
+
+/* Technique selector */
+.tech-selector{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.tech-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px}
+.tech-panel-hd{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:12px}
+.tech-btns{display:flex;flex-wrap:wrap;gap:8px}
+.tbtn{border:1px solid var(--border);color:var(--soft);padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.03)}
+.tbtn:hover{background:rgba(255,255,255,.07)}
+.tbtn.active-pca{background:rgba(0,212,255,.1);border-color:var(--pca);color:var(--pca)}
+.tbtn.active-tsne{background:rgba(244,63,94,.1);border-color:var(--tsne);color:var(--tsne)}
+.tbtn.active-umap{background:rgba(16,185,129,.1);border-color:var(--umap);color:var(--umap)}
+.tbtn.active-lda{background:rgba(139,92,246,.1);border-color:var(--lda);color:var(--lda)}
+.tbtn.active-iso{background:rgba(245,158,11,.1);border-color:var(--iso);color:var(--iso)}
+.tech-active-label{margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+
+/* Main canvas layout */
+.canvas-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.canvas-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.canvas-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.canvas-hd-label{font-size:13px;font-weight:600}
+.canvas-hd-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+.embed-cvs{width:100%;display:block;background:#0d1a12;cursor:default}
+.iter-wrap{padding:10px 16px;border-top:1px solid var(--border)}
+.iter-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.iter-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+.iter-bar-bg{height:2px;background:rgba(255,255,255,.06);border-radius:1px}
+.iter-bar-fill{height:2px;border-radius:1px;width:0%;transition:width .1s}
+
+/* Controls bar */
+.controls-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 22px}
+.run-btn{background:linear-gradient(90deg,#00d4ff,#10b981);color:#060b1a;border:none;padding:10px 28px;border-radius:100px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.run-btn:hover{opacity:.88}
+.ctrl{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.ctrl:hover{background:rgba(255,255,255,.1)}
+.speed-label{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+.status-badge{font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 12px;border-radius:6px;margin-left:auto}
+.status-idle{background:rgba(255,255,255,.04);color:var(--muted)}
+.status-running{background:rgba(16,185,129,.08);color:#10b981;border:1px solid rgba(16,185,129,.2)}
+.status-done{background:rgba(0,212,255,.08);color:#00d4ff;border:1px solid rgba(0,212,255,.2)}
+
+/* Comparison table */
+.cmp-section{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:20px}
+.cmp-section h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:20px}
+.cmp-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:0}
+.cmp-row{display:contents}
+.cmp-cell{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:var(--soft);line-height:1.5}
+.cmp-cell.hd{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;border-bottom:1px solid var(--border2);background:rgba(255,255,255,.02)}
+.cmp-cell.prop{color:var(--text);font-weight:500}
+.cmp-cell.a{border-left:2px solid}
+.cmp-cell.b{border-left:2px solid}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-family:'JetBrains Mono',monospace}
+.badge-yes{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#10b981}
+.badge-no{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:#f43f5e}
+.badge-partial{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b}
+
+/* Legend */
+.legend-row{display:flex;gap:20px;flex-wrap:wrap;padding:0 4px;margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* Footnote */
+.footnote{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;border-top:1px solid var(--border);margin-top:8px}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:rgba(255,255,255,0.12);border-color:var(--accent,#00d4ff);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
+</style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+</head>
+<body>
+<div id="prog"></div>
+<nav class="nav">
+  <a href="dashboard.html">&larr; Dashboard</a>
+  <span class="nav-tag">04 &middot; Compare Techniques</span>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+</nav>
+
+<div class="page">
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="page-hd">
+  <span class="eyebrow">Section 04</span>
+  <h1>Compare Techniques</h1>
+  <p>Pick any two dimensionality reduction methods and run them side by side on the same dataset. See exactly where each one succeeds and fails.</p>
+</div>
+
+<!-- DATASET PICKER -->
+<div class="ds-section">
+  <h3>Dataset</h3>
+  <div class="ds-row">
+    <button class="ds-btn active" data-ds="swiss">&#129360; Swiss Roll</button>
+    <button class="ds-btn" data-ds="moons">&#127769; Two Moons</button>
+    <button class="ds-btn" data-ds="iris">&#127804; Iris (labelled)</button>
+    <button class="ds-btn" data-ds="blobs">&#128309; Four Clusters</button>
+    <button class="ds-btn" data-ds="circles">&#11093; Concentric Rings</button>
+    <button class="ds-btn" data-ds="scurve">&#128312; S-Curve</button>
+    <span class="ds-info" id="ds-info">120 points &middot; 3D &middot; 3 classes</span>
+  </div>
+</div>
+
+<!-- TECHNIQUE SELECTORS -->
+<div class="tech-selector">
+  <div class="tech-panel">
+    <div class="tech-panel-hd">Panel A &mdash; Left</div>
+    <div class="tech-btns" id="tech-btns-a">
+      <button class="tbtn active-pca" data-side="a" data-tech="pca">PCA</button>
+      <button class="tbtn" data-side="a" data-tech="tsne">t-SNE</button>
+      <button class="tbtn" data-side="a" data-tech="umap">UMAP</button>
+      <button class="tbtn" data-side="a" data-tech="lda">LDA</button>
+      <button class="tbtn" data-side="a" data-tech="iso">Isomap</button>
+    </div>
+    <div class="tech-active-label" id="label-a">Selected: PCA</div>
+  </div>
+  <div class="tech-panel">
+    <div class="tech-panel-hd">Panel B &mdash; Right</div>
+    <div class="tech-btns" id="tech-btns-b">
+      <button class="tbtn" data-side="b" data-tech="pca">PCA</button>
+      <button class="tbtn" data-side="b" data-tech="tsne">t-SNE</button>
+      <button class="tbtn" data-side="b" data-tech="umap">UMAP</button>
+      <button class="tbtn" data-side="b" data-tech="lda">LDA</button>
+      <button class="tbtn active-iso" data-side="b" data-tech="iso">Isomap</button>
+    </div>
+    <div class="tech-active-label" id="label-b">Selected: Isomap</div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls-bar">
+  <button class="run-btn" id="run-btn" onclick="runComparison()">&#9654; Run Comparison</button>
+  <button class="ctrl" onclick="stopAll()">&#9646;&#9646; Pause</button>
+  <button class="ctrl" onclick="resetAll()">&#8635; Reset</button>
+  <button class="ctrl" id="speed-btn" onclick="cycleSpeed()">1&times; speed</button>
+  <span class="speed-label" id="iter-total"></span>
+  <span class="status-badge status-idle" id="status-badge">Ready</span>
+</div>
+
+<!-- CANVAS PANELS -->
+<div class="canvas-row">
+  <!-- Panel A -->
+  <div class="canvas-card">
+    <div class="canvas-hd">
+      <div>
+        <div class="canvas-hd-label" id="card-title-a" style="color:var(--pca)">PCA</div>
+        <div class="canvas-hd-sub" id="metrics-a" style="color:var(--accent)"></div>
+        <div class="canvas-hd-sub" id="card-sub-a">Principal Component Analysis</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="card-time-a"></div>
+    </div>
+    <div id="legend-a" class="legend-row" style="padding:8px 16px"></div>
+    <canvas id="cvs-a" class="embed-cvs" height="360"></canvas>
+    <div class="iter-wrap" id="iter-wrap-a" style="display:none">
+      <div class="iter-row">
+        <span class="iter-label" id="iter-label-a">Iteration 0</span>
+        <span class="iter-label" id="iter-phase-a"></span>
+      </div>
+      <div class="iter-bar-bg"><div class="iter-bar-fill" id="iter-fill-a"></div></div>
+    </div>
+  </div>
+  <!-- Panel B -->
+  <div class="canvas-card">
+    <div class="canvas-hd">
+      <div>
+        <div class="canvas-hd-label" id="card-title-b" style="color:var(--iso)">Isomap</div>
+        <div class="canvas-hd-sub" id="metrics-b" style="color:var(--accent)"></div>
+        <div class="canvas-hd-sub" id="card-sub-b">Isometric Mapping</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)" id="card-time-b"></div>
+    </div>
+    <div id="legend-b" class="legend-row" style="padding:8px 16px"></div>
+    <canvas id="cvs-b" class="embed-cvs" height="360"></canvas>
+    <div class="iter-wrap" id="iter-wrap-b" style="display:none">
+      <div class="iter-row">
+        <span class="iter-label" id="iter-label-b">Iteration 0</span>
+        <span class="iter-label" id="iter-phase-b"></span>
+      </div>
+      <div class="iter-bar-bg"><div class="iter-bar-fill" id="iter-fill-b"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARISON TABLE -->
+<div class="cmp-section">
+  <h3>Head-to-Head Comparison</h3>
+  <div class="cmp-grid" id="cmp-grid">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+</div><!-- /wrap -->
+</div><!-- /page -->
+
+<div class="footnote">
+  MANIFOLD &middot; Section 04 &middot; Compare Techniques &mdash; all algorithms run entirely in your browser
+</div>
+
+<script>
+/* ════════════════════════════════
+   UTILITY
+════════════════════════════════ */
+function seededRNG(seed){var s=seed>>>0;return function(){s=Math.imul(1664525,s)+1013904223>>>0;return s/4294967296;};}
+function randn(rng){var u=Math.max(rng(),1e-10),v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function eio(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+function dist2pts(a,b){var s=0;for(var i=0;i<a.length;i++){var d=a[i]-b[i];s+=d*d;}return Math.sqrt(s);}
+
+/* ════════════════════════════════
+   DATASETS
+════════════════════════════════ */
+function genSwiss(){
+  var rng=seededRNG(321);var data=[],labels=[];
+  for(var i=0;i<120;i++){var t=1.5*Math.PI*(1+2*rng()),h=12*rng();data.push([t*Math.cos(t),h,t*Math.sin(t)]);labels.push(Math.min(2,Math.floor(h/4)));}
+  return{name:'Swiss Roll',data:data,labels:labels,colors:['#f59e0b','#10b981','#f43f5e'],cn:['Low','Mid','High'],desc:'120 pts · 3D · 3 classes'};
+}
+function genMoons(){
+  var rng=seededRNG(456);var data=[],labels=[];
+  for(var i=0;i<120;i++){var lbl=i<60?0:1,angle=Math.PI*rng(),r=1+randn(rng)*0.1;
+    if(lbl===0)data.push([r*Math.cos(angle),r*Math.sin(angle),0]);
+    else data.push([1-r*Math.cos(angle),0.5-r*Math.sin(angle),0]);
+    labels.push(lbl);}
+  return{name:'Two Moons',data:data,labels:labels,colors:['#00d4ff','#f43f5e'],cn:['Upper','Lower'],desc:'120 pts · 2D+noise · 2 classes'};
+}
+function genIris(){
+  var __s=MCore.irisSample(40);
+  var data=__s.data,labels=__s.labels;
+  return{name:'Iris Flowers',data:data,labels:labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'120 pts · 4D · 3 species (real Fisher Iris)'};
+}
+function genBlobs(){
+  var rng=seededRNG(789);
+  var centers=[[5,1,2,0],[-2,4,-1,2],[0,-3,2,-1],[-4,-2,-3,1]];
+  var data=[],labels=[];
+  for(var c=0;c<4;c++)for(var i=0;i<30;i++){data.push(centers[c].map(function(m){return m+randn(rng)*0.8;}));labels.push(c);}
+  return{name:'Four Clusters',data:data,labels:labels,colors:['#00d4ff','#f43f5e','#10b981','#f59e0b'],cn:['A','B','C','D'],desc:'120 pts · 4D · 4 clusters'};
+}
+function genCircles(){
+  var rng=seededRNG(222);var data=[],labels=[];
+  for(var i=0;i<120;i++){var lbl=i<60?0:1,r=(lbl===0?1:2.8)+randn(rng)*0.1,angle=2*Math.PI*rng();data.push([r*Math.cos(angle),r*Math.sin(angle),0]);labels.push(lbl);}
+  return{name:'Concentric Rings',data:data,labels:labels,colors:['#8b5cf6','#f59e0b'],cn:['Inner','Outer'],desc:'120 pts · 2D+noise · 2 classes'};
+}
+function genSCurve(){
+  var rng=seededRNG(555);var data=[],labels=[];
+  for(var i=0;i<100;i++){var t=3*Math.PI*(rng()-0.5),h=10*rng();data.push([Math.sin(t),h,Math.sign(t)*(Math.cos(t)-1)]);labels.push(Math.min(2,Math.floor((t+4.8)/3.2)));}
+  return{name:'S-Curve',data:data,labels:labels,colors:['#8b5cf6','#f59e0b','#00d4ff'],cn:['Left','Mid','Right'],desc:'100 pts · 3D · 3 classes'};
+}
+var DATASETS={swiss:genSwiss(),moons:genMoons(),iris:genIris(),blobs:genBlobs(),circles:genCircles(),scurve:genSCurve()};
+
+/* ════════════════════════════════
+   ALGORITHM IMPLEMENTATIONS
+════════════════════════════════ */
+
+/* ── PCA ── */
+function runPCA(data){
+  var r=MCore.pca(data,2);
+  return{pts:r.projected,info:{evr1:(r.evr[0]*100).toFixed(1),evr2:(r.evr[1]*100).toFixed(1)}};
+}
+
+/* ── LDA ── */
+function runLDA(data,labels){
+  var n=data.length,d=data[0].length;
+  var classSet={};labels.forEach(function(l){classSet[l]=true;});
+  var classes=Object.keys(classSet).map(Number).sort(function(a,b){return a-b;});
+  var mu=Array(d).fill(0);
+  data.forEach(function(x){x.forEach(function(v,j){mu[j]+=v/n;});});
+  var muC={},nC={};
+  classes.forEach(function(c){muC[c]=Array(d).fill(0);nC[c]=0;});
+  data.forEach(function(x,i){x.forEach(function(v,j){muC[labels[i]][j]+=v;});nC[labels[i]]++;});
+  classes.forEach(function(c){muC[c]=muC[c].map(function(v){return v/nC[c];});});
+  var SW=Array.from({length:d},function(){return Array(d).fill(0);});
+  data.forEach(function(x,i){var c=labels[i],diff=x.map(function(v,j){return v-muC[c][j];});for(var r=0;r<d;r++)for(var cc=0;cc<d;cc++)SW[r][cc]+=diff[r]*diff[cc];});
+  var SB=Array.from({length:d},function(){return Array(d).fill(0);});
+  classes.forEach(function(c){var diff=muC[c].map(function(v,j){return v-mu[j];});for(var r=0;r<d;r++)for(var cc=0;cc<d;cc++)SB[r][cc]+=nC[c]*diff[r]*diff[cc];});
+  // symmetric generalised eigenproblem (Cholesky whitening + Jacobi): exact and S_W-orthogonal
+  var sol=MCore.ldaDirections(SW,SB,Math.min(classes.length-1,2),1e-4);
+  var vecs=[],lams=[];
+  if(sol)sol.values.forEach(function(v,i){if(v>1e-9){vecs.push(sol.vectors[i]);lams.push(v);}});
+  if(!vecs.length){var e0=Array(d).fill(0);e0[0]=1;vecs.push(e0);lams.push(0);}
+  var second='LD2';
+  if(vecs.length===1){ // only C-1=1 discriminant: 2nd axis = top PC of what LD1 leaves (NOT a discriminant)
+    var v1=vecs[0],resid=data.map(function(x){var c=x.map(function(v,j){return v-mu[j];});var p=c.reduce(function(s,v,j){return s+v*v1[j];},0);return c.map(function(v,j){return v-p*v1[j];});});
+    vecs.push(MCore.pca(resid,1).vectors[0]);lams.push(0);second='residual PC';
+  }
+  var pts=data.map(function(p){return[p.reduce(function(s,v,j){return s+v*vecs[0][j];},0),p.reduce(function(s,v,j){return s+v*vecs[1][j];},0)];});
+  return{pts:pts,info:{lam1:lams[0].toFixed(3),lam2:second==='LD2'?lams[1].toFixed(3):'n/a (only C-1=1 axis)'}};
+}
+
+/* ── Isomap ── */
+function runIsomap(data,k){
+  var r=MCore.isomap(data,k);   // undirected graph, k auto-raised until connected, exact top eigenpairs
+  return{pts:r.Y,info:{k:r.kUsed,lam1:r.lambdas[0].toFixed(2),lam2:r.lambdas[1].toFixed(2)}};
+}
+
+/* ── t-SNE ── */
+function computePij(data,perp){return MCore.tsneP(data,perp);}
+function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
+  var n=Y.length,gradClip=4,totalCE=0;
+  var num=Array.from({length:n},function(){return new Float64Array(n);});
+  var sumQ=0;
+  for(var i=0;i<n;i++)for(var j=i+1;j<n;j++){var dx=Y[i][0]-Y[j][0],dy=Y[i][1]-Y[j][1],v=1/(1+dx*dx+dy*dy);num[i][j]=v;num[j][i]=v;sumQ+=2*v;}
+  sumQ=Math.max(sumQ,1e-12);
+  var grads=Array.from({length:n},function(){return [0,0];});
+  for(var i2=0;i2<n;i2++)for(var j2=0;j2<n;j2++){
+    if(i2===j2)continue;
+    var pij=exagg*P[i2][j2],qij=num[i2][j2]/sumQ;
+    var p0=P[i2][j2];if(p0>1e-14&&qij>1e-14)totalCE+=p0*Math.log(p0/qij); // KL with the TRUE P
+    var f=4*(pij-qij)*num[i2][j2];
+    grads[i2][0]+=f*(Y[i2][0]-Y[j2][0]);grads[i2][1]+=f*(Y[i2][1]-Y[j2][1]);
+  }
+  for(var i3=0;i3<n;i3++)for(var d=0;d<2;d++){
+    var sign=Math.sign(grads[i3][d])!==Math.sign(vy[i3][d])?1:0;
+    gains[i3][d]=Math.max(sign?(gains[i3][d]+0.2):(gains[i3][d]*0.8),0.01);
+    vy[i3][d]=momentum*vy[i3][d]-lr*gains[i3][d]*grads[i3][d];
+    Y[i3][d]+=vy[i3][d];
+  }
+  for(var dd=0;dd<2;dd++){var mm=0;for(var q1=0;q1<n;q1++)mm+=Y[q1][dd];mm/=n;for(var q2=0;q2<n;q2++)Y[q2][dd]-=mm;}
+  return totalCE;
+}
+
+/* ── UMAP (simplified SGD) ── */
+function buildUMAPGraph(data,k){
+  var n=data.length,knn=[];
+  for(var i=0;i<n;i++){var dists=[];for(var j=0;j<n;j++){if(i===j)continue;dists.push({j:j,d:dist2pts(data[i],data[j])});}dists.sort(function(a,b){return a.d-b.d;});knn.push(dists.slice(0,k));}
+  var W=Array.from({length:n},function(){return {};});
+  for(var i2=0;i2<n;i2++){
+    var rho=knn[i2][0].d;
+    var sigma=MCore.umapSigma(knn[i2].map(function(x){return x.d;}),rho,k);   // shared, tested, correct direction
+    knn[i2].forEach(function(nb){var wij=Math.exp(-Math.max(0,nb.d-rho)/sigma);var wji=(W[nb.j]&&W[nb.j][i2])||0;var wu=wij+wji-wij*wji;W[i2][nb.j]=wu;W[nb.j][i2]=wu;});
+  }
+  var edges=[];for(var i3=0;i3<n;i3++)for(var j2 in W[i3])if(parseInt(j2)>i3&&W[i3][j2]>0.005)edges.push({i:i3,j:parseInt(j2),w:W[i3][j2]});
+  return edges;
+}
+function umapStepFn(Y,edges,n,a,b,lr,negSamples,rng){
+  var eLen=edges.length;
+  for(var si=eLen-1;si>0;si--){var ri=Math.floor(rng()*(si+1));var tmp=edges[si];edges[si]=edges[ri];edges[ri]=tmp;}
+  var gradClip=4;
+  for(var ei=0;ei<eLen;ei++){
+    var e=edges[ei],ii=e.i,jj=e.j,w=e.w;
+    var dx=Y[ii][0]-Y[jj][0],dy=Y[ii][1]-Y[jj][1],d2=dx*dx+dy*dy+1e-6;
+    var dpow=Math.pow(d2,b),v=1/(1+a*dpow);
+    var gA=clamp(w*2*a*b*Math.pow(d2,b-1)/(1+a*dpow+1e-7),0,gradClip);
+    Y[ii][0]-=lr*gA*dx;Y[ii][1]-=lr*gA*dy;Y[jj][0]+=lr*gA*dx;Y[jj][1]+=lr*gA*dy;
+    for(var ns=0;ns<negSamples;ns++){
+      var kk=Math.floor(rng()*n);if(kk===ii||kk===jj)continue;
+      var dxk=Y[ii][0]-Y[kk][0],dyk=Y[ii][1]-Y[kk][1],d2k=dxk*dxk+dyk*dyk+1e-6;
+      var dpowk=Math.pow(d2k,b),gR=clamp(2*b/(d2k*(1+a*dpowk)+1e-7),0,gradClip);
+      Y[ii][0]+=lr*gR*dxk;Y[ii][1]+=lr*gR*dyk;
+    }
+  }
+}
+
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+var STATE={
+  ds:'swiss',techA:'pca',techB:'iso',
+  speed:1,running:false,
+  a:{Y:null,iter:0,maxIter:0,rafId:null,tsneP:null,tsneGains:null,tsneVy:null,umapEdges:null,umapRng:null,done:false,startTs:null,elapsed:0},
+  b:{Y:null,iter:0,maxIter:0,rafId:null,tsneP:null,tsneGains:null,tsneVy:null,umapEdges:null,umapRng:null,done:false,startTs:null,elapsed:0}
+};
+
+var TECH_META={
+  pca:{name:'PCA',full:'Principal Component Analysis',color:'var(--pca)',type:'Linear',global:'Yes',det:'Yes',speed:'Fast',supervised:'No',iterative:false},
+  tsne:{name:'t-SNE',full:'t-Distributed SNE',color:'var(--tsne)',type:'Non-linear',global:'No',det:'No',speed:'Slow',supervised:'No',iterative:true,maxIter:400},
+  umap:{name:'UMAP',full:'Uniform Manifold Approx.',color:'var(--umap)',type:'Non-linear',global:'Partial',det:'No',speed:'Medium',supervised:'No',iterative:true,maxIter:250},
+  lda:{name:'LDA',full:'Linear Discriminant Analysis',color:'var(--lda)',type:'Linear',global:'Yes',det:'Yes',speed:'Fast',supervised:'Yes',iterative:false},
+  iso:{name:'Isomap',full:'Isometric Mapping',color:'var(--iso)',type:'Non-linear',global:'Yes',det:'Yes',speed:'Medium',supervised:'No',iterative:false}
+};
+
+/* ════════════════════════════════
+   DRAWING
+════════════════════════════════ */
+function drawScatter(side,pts,labels,colors,cn,title,extraInfo){
+  var cvsId='cvs-'+side;
+  var cvs=document.getElementById(cvsId);if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  if(!pts||!pts.length){
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font='14px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Press Run to compute',W/2,H/2);
+    return;
+  }
+  var pl=44,pr=80,pt2=16,pb=28;
+  var allX=pts.map(function(p){return p[0];}),allY=pts.map(function(p){return p[1];});
+  var minX=Math.min.apply(null,allX),maxX=Math.max.apply(null,allX);
+  var minY=Math.min.apply(null,allY),maxY=Math.max.apply(null,allY);
+  var rx=(maxX-minX)*0.1||0.5,ry=(maxY-minY)*0.1||0.5;
+  minX-=rx;maxX+=rx;minY-=ry;maxY+=ry;
+  var cW=W-pl-pr,cH=H-pt2-pb;
+  function sx(x){return pl+(x-minX)/(maxX-minX)*cW;}
+  function sy(y){return H-pb-(y-minY)/(maxY-minY)*cH;}
+
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(var gi=0;gi<=5;gi++){
+    ctx.beginPath();ctx.moveTo(pl+gi/5*cW,pt2);ctx.lineTo(pl+gi/5*cW,H-pb);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pl,pt2+gi/5*cH);ctx.lineTo(W-pr,pt2+gi/5*cH);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.strokeRect(pl,pt2,cW,cH);
+
+  pts.forEach(function(p,i){
+    var col=colors[labels[i]]||'#aaa';
+    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),4.5,0,Math.PI*2);
+    ctx.fillStyle=col+'cc';ctx.fill();
+    ctx.strokeStyle=col+'55';ctx.lineWidth=0.7;ctx.stroke();
+  });
+
+  var uniq=[...new Set(labels)];
+  uniq.forEach(function(c,i){
+    var lx=W-pr+10,ly=pt2+14+i*20;
+    ctx.beginPath();ctx.arc(lx+4,ly,4,0,Math.PI*2);
+    ctx.fillStyle=colors[c]||'#aaa';ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='11px DM Sans,sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(cn[c]||('C'+c),lx+11,ly);
+  });
+}
+
+function drawEmpty(side){
+  var cvs=document.getElementById('cvs-'+side);if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.1)';ctx.font='14px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Press Run to compute',W/2,H/2);
+}
+
+function resizeCanvases(){
+  ['a','b'].forEach(function(side){
+    var cvs=document.getElementById('cvs-'+side);
+    if(cvs)cvs.width=cvs.offsetWidth;
+  });
+}
+
+/* ════════════════════════════════
+   TECH CARD HEADERS
+════════════════════════════════ */
+function updateCardHeader(side,tech){
+  var m=TECH_META[tech];
+  var title=document.getElementById('card-title-'+side);
+  var sub=document.getElementById('card-sub-'+side);
+  if(title){title.textContent=m.name;title.style.color=m.color;}
+  if(sub)sub.textContent=m.full;
+  // iter bar visibility
+  var iw=document.getElementById('iter-wrap-'+side);
+  if(iw)iw.style.display=m.iterative?'block':'none';
+}
+
+function updateLegend(side,ds){
+  var el=document.getElementById('legend-'+side);if(!el)return;
+  el.innerHTML=ds.cn.map(function(name,i){
+    return '<div class="legend-item"><div class="legend-dot" style="background:'+ds.colors[i]+'"></div>'+name+'</div>';
+  }).join('');
+}
+
+/* ════════════════════════════════
+   ITERATIVE RUNNER
+════════════════════════════════ */
+function showMetrics(side){
+  // measured (not opinion) quality of the finished embedding, vs the original high-D data
+  var ds=DATASETS[STATE.ds],Y=STATE[side].Y,el=document.getElementById('metrics-'+side);
+  if(!Y||!el)return;
+  var k=Math.min(10,Math.floor(ds.data.length/4));
+  el.textContent='Trustworthiness@'+k+': '+MCore.trustworthiness(ds.data,Y,k).toFixed(3)+' · '+k+'-NN overlap: '+(MCore.knnOverlap(ds.data,Y,k)*100).toFixed(0)+'%';
+}
+function initIterative(side,tech,ds){
+  var s=STATE[side];
+  var n=ds.data.length;
+  var rng=seededRNG(42+n+(side==='b'?1000:0));
+  s.Y=Array.from({length:n},function(){return[randn(rng)*0.1,randn(rng)*0.1];});
+  s.iter=0;s.done=false;s.startTs=performance.now();
+  if(tech==='tsne'){
+    s.tsneP=computePij(ds.data,Math.min(30,Math.floor(n/4)));
+    s.tsneGains=Array.from({length:n},function(){return[1,1];});
+    s.tsneVy=Array.from({length:n},function(){return[0,0];});
+    s.maxIter=TECH_META.tsne.maxIter;
+  } else if(tech==='umap'){
+    s.umapEdges=buildUMAPGraph(ds.data,Math.min(15,n-1));
+    s.umapRng=seededRNG(77+n+(side==='b'?500:0));
+    // spectral initialisation from the fuzzy graph (as in real UMAP)
+    var Wg=Array.from({length:n},function(){return {};});
+    s.umapEdges.forEach(function(e){Wg[e.i][e.j]=e.w;Wg[e.j][e.i]=e.w;});
+    s.Y=MCore.spectralInit(Wg,n,rng,2);
+    s.maxIter=TECH_META.umap.maxIter;
+  }
+}
+
+function stepIterative(side,tech){
+  var s=STATE[side];var ds=DATASETS[STATE.ds];var n=ds.data.length;
+  if(tech==='tsne'){
+    var exagg=s.iter<80?4:1,momentum=s.iter<20?0.5:0.8;
+    tsneStep(s.Y,s.tsneP,s.tsneGains,s.tsneVy,150,momentum,exagg);
+    s.iter++;
+    var pct=s.iter/s.maxIter;
+    var phase=s.iter<80?'Early exaggeration':s.iter<250?'Main optimisation':'Fine-tuning';
+    document.getElementById('iter-label-'+side).textContent='Iter '+s.iter+' / '+s.maxIter;
+    document.getElementById('iter-phase-'+side).textContent=phase;
+    document.getElementById('iter-fill-'+side).style.background='var(--tsne)';
+    document.getElementById('iter-fill-'+side).style.width=(pct*100)+'%';
+  } else if(tech==='umap'){
+    var epochLr=Math.max(0.05,1-s.iter/s.maxIter);
+    umapStepFn(s.Y,s.umapEdges,n,1.577,0.895,epochLr,5,s.umapRng);
+    s.iter++;
+    var pct2=s.iter/s.maxIter;
+    document.getElementById('iter-label-'+side).textContent='Epoch '+s.iter+' / '+s.maxIter;
+    document.getElementById('iter-phase-'+side).textContent=s.iter<60?'Graph phase':'SGD phase';
+    document.getElementById('iter-fill-'+side).style.background='var(--umap)';
+    document.getElementById('iter-fill-'+side).style.width=(pct2*100)+'%';
+  }
+  drawScatter(side,s.Y,ds.labels,ds.colors,ds.cn,'');
+  if(s.iter>=s.maxIter){
+    s.done=true;s.elapsed=performance.now()-s.startTs;showMetrics(side);
+    document.getElementById('card-time-'+side).textContent=s.elapsed.toFixed(0)+'ms';
+  }
+}
+
+/* ════════════════════════════════
+   RUN COMPARISON
+════════════════════════════════ */
+function runComparison(){
+  stopAll();
+  resizeCanvases();
+  var ds=DATASETS[STATE.ds];
+  STATE.running=true;
+  document.getElementById('status-badge').textContent='Running...';
+  document.getElementById('status-badge').className='status-badge status-running';
+
+  ['a','b'].forEach(function(side){
+    var tech=side==='a'?STATE.techA:STATE.techB;
+    var s=STATE[side];
+    s.done=false;s.startTs=performance.now();
+    updateCardHeader(side,tech);
+    updateLegend(side,ds);
+    document.getElementById('card-time-'+side).textContent='';
+    var m=TECH_META[tech];
+    if(m.iterative){
+      // Show iter bar
+      document.getElementById('iter-wrap-'+side).style.display='block';
+      document.getElementById('iter-fill-'+side).style.width='0%';
+      document.getElementById('iter-label-'+side).textContent='Iter 0';
+      document.getElementById('iter-phase-'+side).textContent='';
+      initIterative(side,tech,ds);
+    } else {
+      document.getElementById('iter-wrap-'+side).style.display='none';
+      // Run synchronously
+      var t0=performance.now();
+      var result;
+      try{
+        if(tech==='pca')result=runPCA(ds.data);
+        else if(tech==='lda')result=runLDA(ds.data,ds.labels);
+        else if(tech==='iso')result=runIsomap(ds.data,8);
+      }catch(e){result={pts:ds.data.map(function(){return[0,0];}),info:{}};}
+      var elapsed=performance.now()-t0;
+      s.Y=result.pts;s.done=true;s.elapsed=elapsed;showMetrics(side);
+      document.getElementById('card-time-'+side).textContent=elapsed.toFixed(0)+'ms';
+      drawScatter(side,result.pts,ds.labels,ds.colors,ds.cn,'');
+    }
+  });
+
+  updateCompareTable();
+
+  // Animation loop for iterative methods
+  var lastTs=null;
+  function loop(ts){
+    if(!STATE.running)return;
+    if(lastTs===null)lastTs=ts;
+    var dt=(ts-lastTs)/16;lastTs=ts;
+    var steps=Math.max(1,Math.round(STATE.speed*dt));
+    ['a','b'].forEach(function(side){
+      var tech=side==='a'?STATE.techA:STATE.techB;
+      var s=STATE[side];
+      if(!s.done&&TECH_META[tech].iterative){
+        for(var st=0;st<steps&&!s.done;st++)stepIterative(side,tech);
+      }
+    });
+    var allDone=STATE.a.done&&STATE.b.done;
+    if(allDone){
+      STATE.running=false;
+      document.getElementById('status-badge').textContent='Complete';
+      document.getElementById('status-badge').className='status-badge status-done';
+      updateIterTotal();
+      return;
+    }
+    requestAnimationFrame(loop);
+  }
+  var hasIterative=(TECH_META[STATE.techA].iterative||TECH_META[STATE.techB].iterative);
+  if(hasIterative)requestAnimationFrame(loop);
+  else{
+    STATE.running=false;
+    document.getElementById('status-badge').textContent='Complete';
+    document.getElementById('status-badge').className='status-badge status-done';
+  }
+}
+
+function stopAll(){
+  STATE.running=false;
+  document.getElementById('status-badge').textContent='Paused';
+  document.getElementById('status-badge').className='status-badge status-idle';
+}
+
+function resetAll(){
+  stopAll();
+  STATE.a={Y:null,iter:0,maxIter:0,rafId:null,tsneP:null,tsneGains:null,tsneVy:null,umapEdges:null,umapRng:null,done:false,startTs:null,elapsed:0};
+  STATE.b={Y:null,iter:0,maxIter:0,rafId:null,tsneP:null,tsneGains:null,tsneVy:null,umapEdges:null,umapRng:null,done:false,startTs:null,elapsed:0};
+  ['a','b'].forEach(function(x){var el=document.getElementById('metrics-'+x);if(el)el.textContent='';});
+  drawEmpty('a');drawEmpty('b');
+  document.getElementById('card-time-a').textContent='';
+  document.getElementById('card-time-b').textContent='';
+  document.getElementById('iter-fill-a').style.width='0%';
+  document.getElementById('iter-fill-b').style.width='0%';
+  document.getElementById('status-badge').textContent='Ready';
+  document.getElementById('status-badge').className='status-badge status-idle';
+  document.getElementById('iter-total').textContent='';
+}
+
+function updateIterTotal(){
+  var parts=[];
+  if(STATE.a.elapsed)parts.push(TECH_META[STATE.techA].name+': '+STATE.a.elapsed.toFixed(0)+'ms');
+  if(STATE.b.elapsed)parts.push(TECH_META[STATE.techB].name+': '+STATE.b.elapsed.toFixed(0)+'ms');
+  document.getElementById('iter-total').textContent=parts.join('  |  ');
+}
+
+var SPEED_OPTS=[1,3,6],SPEED_LBLS=['1x speed','3x speed','6x speed'],speedIdx=0;
+function cycleSpeed(){
+  speedIdx=(speedIdx+1)%SPEED_OPTS.length;
+  STATE.speed=SPEED_OPTS[speedIdx];
+  document.getElementById('speed-btn').textContent=SPEED_LBLS[speedIdx];
+}
+
+/* ════════════════════════════════
+   COMPARISON TABLE
+════════════════════════════════ */
+function badge(val){
+  if(val==='Yes')return '<span class="badge badge-yes">Yes</span>';
+  if(val==='No')return '<span class="badge badge-no">No</span>';
+  if(val==='Partial')return '<span class="badge badge-partial">Partial</span>';
+  return val;
+}
+var CMP_ROWS=[
+  {prop:'Type',key:'type'},
+  {prop:'Preserves Global',key:'global'},
+  {prop:'Deterministic',key:'det'},
+  {prop:'Speed',key:'speed'},
+  {prop:'Supervised',key:'supervised'},
+];
+var CMP_EXTRA={
+  pca:{bestFor:'Linear data, preprocessing, feature reduction',weakness:'Cannot unfold curved manifolds'},
+  tsne:{bestFor:'Cluster visualisation, exploratory analysis',weakness:'Distorts global distances, slow, non-deterministic'},
+  umap:{bestFor:'Large datasets, global + local structure',weakness:'Sensitive to n_neighbors and min_dist'},
+  lda:{bestFor:'Supervised separation of known classes',weakness:'Assumes Gaussian classes, needs labels'},
+  iso:{bestFor:'Smooth convex manifolds (Swiss Roll, S-Curve)',weakness:'Fails on non-convex manifolds, slow for large n'}
+};
+
+function updateCompareTable(){
+  var mA=TECH_META[STATE.techA],mB=TECH_META[STATE.techB];
+  var eA=CMP_EXTRA[STATE.techA],eB=CMP_EXTRA[STATE.techB];
+  var rows='<div class="cmp-row"><div class="cmp-cell hd prop">Property</div><div class="cmp-cell hd a" style="border-left-color:'+mA.color+'">'+mA.name+'</div><div class="cmp-cell hd b" style="border-left-color:'+mB.color+'">'+mB.name+'</div></div>';
+  CMP_ROWS.forEach(function(r){
+    rows+='<div class="cmp-row"><div class="cmp-cell prop">'+r.prop+'</div>';
+    rows+='<div class="cmp-cell a" style="border-left-color:'+mA.color+'44">'+badge(mA[r.key])+'</div>';
+    rows+='<div class="cmp-cell b" style="border-left-color:'+mB.color+'44">'+badge(mB[r.key])+'</div>';
+    rows+='</div>';
+  });
+  rows+='<div class="cmp-row"><div class="cmp-cell prop">Best For</div><div class="cmp-cell a" style="border-left-color:'+mA.color+'44">'+eA.bestFor+'</div><div class="cmp-cell b" style="border-left-color:'+mB.color+'44">'+eB.bestFor+'</div></div>';
+  rows+='<div class="cmp-row"><div class="cmp-cell prop">Key Weakness</div><div class="cmp-cell a" style="border-left-color:'+mA.color+'44">'+eA.weakness+'</div><div class="cmp-cell b" style="border-left-color:'+mB.color+'44">'+eB.weakness+'</div></div>';
+  document.getElementById('cmp-grid').innerHTML=rows;
+}
+
+/* ════════════════════════════════
+   EVENT SETUP
+════════════════════════════════ */
+function setTech(side,tech){
+  if(side==='a')STATE.techA=tech;else STATE.techB=tech;
+  var container=document.getElementById('tech-btns-'+side);
+  if(!container)return;
+  container.querySelectorAll('.tbtn').forEach(function(b){
+    b.className='tbtn'+(b.dataset.tech===tech?' active-'+tech:'');
+  });
+  var m=TECH_META[tech];
+  document.getElementById('label-'+side).textContent='Selected: '+m.name+(m.supervised==='Yes'?' (uses class labels)':'');
+  updateCardHeader(side,tech);
+  updateCompareTable();
+}
+
+function setDs(dsKey){
+  STATE.ds=dsKey;
+  document.querySelectorAll('.ds-btn').forEach(function(b){b.classList.toggle('active',b.dataset.ds===dsKey);});
+  var ds=DATASETS[dsKey];
+  document.getElementById('ds-info').textContent=ds.data.length+' pts · '+ds.data[0].length+'D · '+ds.cn.length+' classes';
+  resetAll();
+}
+
+window.addEventListener('load',function(){
+  resizeCanvases();
+  window.addEventListener('resize',function(){resizeCanvases();if(STATE.a.Y)drawScatter('a',STATE.a.Y,DATASETS[STATE.ds].labels,DATASETS[STATE.ds].colors,DATASETS[STATE.ds].cn,'');if(STATE.b.Y)drawScatter('b',STATE.b.Y,DATASETS[STATE.ds].labels,DATASETS[STATE.ds].colors,DATASETS[STATE.ds].cn,'');});
+
+  // Dataset buttons
+  document.querySelectorAll('.ds-btn').forEach(function(b){b.addEventListener('click',function(){setDs(b.dataset.ds);});});
+
+  // Tech buttons
+  document.querySelectorAll('.tbtn').forEach(function(b){
+    b.addEventListener('click',function(){setTech(b.dataset.side,b.dataset.tech);});
+  });
+
+  // Init defaults - call setTech to synchronise HTML classes with STATE
+  setTech('a','pca');
+  setTech('b','iso');
+  updateLegend('a',DATASETS['swiss']);
+  updateLegend('b',DATASETS['swiss']);
+  updateCompareTable();
+  drawEmpty('a');drawEmpty('b');
+  document.getElementById('ds-info').textContent='120 pts · 3D · 3 classes';
+
+  // Progress bar
+  window.addEventListener('scroll',function(){
+    var s=window.scrollY,tot=document.body.scrollHeight-window.innerHeight;
+    document.getElementById('prog').style.width=(tot>0?s/tot*100:0)+'%';
+  });
+});
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What is Dimensionality Reduction — Manifold</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0d1a12;
+  --surface:rgba(255,255,255,0.03);
+  --surface-h:rgba(255,255,255,0.055);
+  --border:rgba(255,255,255,0.07);
+  --border-h:rgba(255,255,255,0.13);
+  --accent:#00d4ff;
+  --gold:#f59e0b;
+  --green:#10b981;
+  --rose:#f43f5e;
+  --purple:#7c3aed;
+  --text:#dde8f5;
+  --muted:#4e6a84;
+  --soft:#8faabf;
+}
+
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  font-size:15px;
+  line-height:1.7;
+  overflow-x:hidden;
+}
+
+/* ── TOPNAV ── */
+.topnav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;padding:16px 32px;
+  background:rgba(4,9,26,.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);gap:14px;
+}
+.nav-logo{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--text);letter-spacing:.5px;}
+.nav-sep{color:var(--muted);}
+.nav-crumb{font-size:13px;color:var(--muted);font-weight:400;}
+.nav-back{
+  margin-left:auto;font-size:12px;color:var(--muted);text-decoration:none;
+  padding:7px 16px;border:1px solid var(--border);border-radius:8px;
+  font-weight:500;transition:.2s;letter-spacing:.3px;
+}
+.nav-back:hover{color:var(--text);border-color:var(--border-h);}
+.reading-bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);z-index:200;width:0%;}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:100px 24px 60px;
+  position:relative;overflow:hidden;
+}
+.hero-bg{position:absolute;inset:0;z-index:0;}
+.blob{position:absolute;border-radius:50%;filter:blur(130px);pointer-events:none;}
+.b1{width:500px;height:500px;background:#00d4ff;opacity:.04;top:-180px;right:-100px;}
+.b2{width:400px;height:400px;background:#7c3aed;opacity:.05;bottom:-120px;left:-80px;}
+.hero-content{position:relative;z-index:1;max-width:760px;}
+.hero-eyebrow{
+  display:inline-block;font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  font-weight:500;color:var(--accent);margin-bottom:24px;
+  border-bottom:1px solid rgba(0,212,255,.3);padding-bottom:8px;
+}
+.hero-title{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(38px,6vw,68px);font-weight:700;
+  line-height:1.1;margin-bottom:22px;color:#eef4ff;
+  letter-spacing:-.5px;
+}
+.hero-title span{color:var(--accent);}
+.hero-body{
+  font-size:17px;color:var(--soft);line-height:1.85;max-width:600px;
+  margin:0 auto 44px;font-weight:300;
+}
+.scroll-cue{color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;
+  display:flex;flex-direction:column;align-items:center;gap:8px;animation:bob 2s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(7px);}}
+.scroll-cue svg{opacity:.35;}
+
+/* ── SECTIONS ── */
+.section{padding:90px 24px;max-width:980px;margin:0 auto;}
+.eyebrow{
+  font-size:10.5px;letter-spacing:3px;text-transform:uppercase;font-weight:600;
+  color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px;
+}
+.eyebrow::after{content:'';flex:1;height:1px;background:rgba(0,212,255,.15);max-width:60px;}
+.section-title{
+  font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);
+  font-weight:700;color:#eef4ff;margin-bottom:14px;letter-spacing:-.3px;line-height:1.15;
+}
+.section-body{font-size:15px;color:var(--soft);line-height:1.85;max-width:660px;margin-bottom:48px;font-weight:300;}
+
+/* ── ANALOGY CARD ── */
+.analogy{
+  background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.14);
+  border-radius:18px;padding:28px 32px;margin-bottom:48px;
+  display:flex;gap:20px;align-items:flex-start;
+}
+.analogy-icon{font-size:32px;flex-shrink:0;margin-top:2px;}
+.analogy-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;
+  color:var(--accent);margin-bottom:6px;}
+.analogy-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;
+  color:#eef4ff;margin-bottom:8px;}
+.analogy-text{font-size:14px;color:var(--soft);line-height:1.8;font-weight:300;}
+
+/* ── STEP CARDS ── */
+.steps{display:flex;flex-direction:column;gap:0;margin-bottom:56px;}
+.step{display:flex;gap:24px;position:relative;padding-bottom:32px;}
+.step:last-child{padding-bottom:0;}
+.step-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.step-num{
+  width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:15px;font-weight:700;
+  border:1.5px solid var(--accent);color:var(--accent);flex-shrink:0;
+}
+.step-line{width:1px;flex:1;background:rgba(0,212,255,.12);margin-top:6px;}
+.step:last-child .step-line{display:none;}
+.step-body{padding-top:8px;}
+.step-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;
+  color:#eef4ff;margin-bottom:6px;}
+.step-text{font-size:14px;color:var(--soft);line-height:1.8;font-weight:300;}
+.step-example{
+  margin-top:10px;display:inline-block;font-size:12.5px;font-weight:500;
+  color:var(--gold);background:rgba(245,158,11,.08);
+  border:1px solid rgba(245,158,11,.18);border-radius:8px;padding:5px 12px;
+}
+
+/* ── BEFORE AFTER ── */
+.ba-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:30px;margin-bottom:20px;
+}
+.ba-card-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;
+  color:#eef4ff;margin-bottom:6px;}
+.ba-card-sub{font-size:13px;color:var(--muted);margin-bottom:24px;font-weight:300;}
+.ba-grid{display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:center;}
+@media(max-width:580px){.ba-grid{grid-template-columns:1fr;}}
+.ba-side-label{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;
+  font-weight:600;margin-bottom:10px;}
+canvas.ba-c{width:100%;border-radius:12px;background:rgba(0,0,0,.22);
+  border:1px solid rgba(255,255,255,.05);display:block;}
+.ba-arrow-col{display:flex;align-items:center;justify-content:center;
+  font-size:22px;color:var(--accent);opacity:.5;}
+.ba-note{
+  margin-top:18px;padding:14px 18px;
+  background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.12);
+  border-radius:12px;font-size:13px;color:rgba(0,212,255,.8);
+  line-height:1.75;font-weight:300;
+}
+
+/* ── TYPE CARDS ── */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:48px;}
+@media(max-width:620px){.type-grid{grid-template-columns:1fr;}}
+.type-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;}
+.type-tag{display:inline-block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+  font-weight:600;padding:4px 10px;border-radius:6px;margin-bottom:14px;}
+.type-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;
+  color:#eef4ff;margin-bottom:8px;}
+.type-body{font-size:13.5px;color:var(--soft);line-height:1.8;font-weight:300;margin-bottom:14px;}
+.type-examples{display:flex;flex-wrap:wrap;gap:6px;}
+.pill{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;}
+
+/* ── WHY SECTION ── */
+.why-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:56px;}
+.why-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;transition:.2s;}
+.why-card:hover{background:var(--surface-h);border-color:var(--border-h);}
+.why-icon{font-size:24px;margin-bottom:12px;}
+.why-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:600;color:#eef4ff;margin-bottom:6px;}
+.why-body{font-size:13px;color:var(--muted);line-height:1.75;font-weight:300;}
+
+/* ── MANIFOLD DEMO ── */
+.manifold-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;}
+.manifold-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;}
+.m-tab{padding:8px 16px;border-radius:8px;font-size:12.5px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border);color:var(--muted);transition:.2s;letter-spacing:.3px;}
+.m-tab.active{background:rgba(0,212,255,.1);color:var(--accent);border-color:rgba(0,212,255,.25);}
+.m-tab:not(.active):hover{border-color:var(--border-h);color:var(--text);}
+.m-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
+.m-stat{padding:14px 18px;border-radius:12px;text-align:center;}
+.m-stat-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-bottom:5px;}
+.m-stat-val{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;}
+
+/* ── TECHNIQUE PREVIEW ── */
+.tech-list{display:flex;flex-direction:column;gap:12px;margin-bottom:56px;}
+.tech-row{
+  display:flex;align-items:center;gap:18px;padding:18px 22px;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  transition:.2s;
+}
+.tech-row:hover{background:var(--surface-h);border-color:var(--border-h);}
+.tech-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.tech-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:#eef4ff;width:160px;flex-shrink:0;}
+.tech-type{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;flex-shrink:0;}
+.tech-desc{font-size:13px;color:var(--muted);font-weight:300;flex:1;}
+.tech-when{font-size:12px;font-weight:500;color:var(--soft);flex-shrink:0;text-align:right;max-width:180px;}
+@media(max-width:660px){.tech-row{flex-wrap:wrap;}.tech-when{display:none;}}
+
+/* ── QUIZ ── */
+.quiz-wrap{
+  background:rgba(255,255,255,.02);border:1px solid var(--border);
+  border-radius:22px;padding:36px;margin-top:70px;
+}
+.quiz-eyebrow{font-size:10.5px;letter-spacing:3px;text-transform:uppercase;font-weight:600;
+  color:var(--gold);margin-bottom:8px;}
+.quiz-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#eef4ff;margin-bottom:4px;}
+.quiz-sub{font-size:13px;color:var(--muted);font-weight:300;margin-bottom:28px;}
+.q-progress{display:flex;gap:6px;margin-bottom:28px;}
+.q-pip{height:3px;flex:1;border-radius:2px;background:var(--border);transition:.3s;}
+.q-pip.correct{background:var(--green);}
+.q-pip.wrong{background:var(--rose);}
+.q-pip.current{background:var(--gold);}
+.q-card{display:none;}
+.q-card.active{display:block;animation:up .35s ease;}
+@keyframes up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.q-num{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:10px;}
+.q-text{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#eef4ff;margin-bottom:22px;line-height:1.45;}
+.q-opts{display:flex;flex-direction:column;gap:10px;}
+.q-opt{
+  background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;
+  padding:13px 18px;font-size:14px;cursor:pointer;text-align:left;color:var(--soft);
+  font-family:'Inter',sans-serif;font-weight:400;transition:.15s;
+}
+.q-opt:hover:not(:disabled){background:rgba(0,212,255,.06);border-color:rgba(0,212,255,.2);color:var(--text);}
+.q-opt.correct{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#6ee7b7;}
+.q-opt.wrong{background:rgba(244,63,94,.08);border-color:rgba(244,63,94,.25);color:#fda4af;}
+.q-opt:disabled{cursor:default;}
+.q-feedback{
+  margin-top:14px;padding:13px 16px;border-radius:10px;font-size:13.5px;
+  line-height:1.75;font-weight:300;display:none;
+}
+.q-feedback.show{display:block;}
+.fb-correct{background:rgba(16,185,129,.07);color:#a7f3d0;border:1px solid rgba(16,185,129,.18);}
+.fb-wrong{background:rgba(244,63,94,.07);color:#fda4af;border:1px solid rgba(244,63,94,.18);}
+.quiz-footer{display:flex;align-items:center;gap:12px;margin-top:22px;flex-wrap:wrap;}
+.q-btn{padding:10px 24px;border-radius:9px;font-family:'Inter',sans-serif;font-weight:600;
+  font-size:13px;border:none;cursor:pointer;letter-spacing:.3px;transition:.18s;}
+.q-btn:hover{opacity:.85;}
+.q-btn-main{background:var(--accent);color:#020d1a;}
+.q-btn-sec{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.q-score{margin-left:auto;font-size:13px;font-weight:600;color:var(--soft);}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .65s ease,transform .65s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:rgba(255,255,255,0.12);border-color:var(--accent,#00d4ff);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
+
+/* ── Light mode: fix hardcoded #eef4ff titles & canvas ── */
+body.light h1,body.light h2,body.light h3,
+body.light .section-title,body.light .analogy-title,
+body.light .step-title,body.light .explorer-title,
+body.light .quiz-title,body.light .q-text,
+body.light .info-title,body.light .tech-name,
+body.light .why-title,body.light .ba-card-title,
+body.light .type-title,body.light .card-title-text,
+body.light .hero-title,body.light .eyebrow-title,
+body.light .insight-title,body.light .manifold-title{
+  color:#0f1b2d !important;
+}
+body.light .tech-desc{color:#3a5270 !important;}
+body.light .tech-when{color:#3a5270 !important;font-weight:600;}
+body.light .code-block{
+  color:#1a3a5c !important;
+  background:rgba(0,0,0,0.06) !important;
+  border-color:rgba(0,0,0,0.1) !important;
+}
+/* Keep all viz canvases dark — looks intentional */
+body.light canvas:not(#bg){
+  background:#1a2240 !important;
+  border-color:rgba(0,212,255,0.15) !important;
+}
+/* Fix tech-row cards */
+body.light .tech-row{
+  background:rgba(255,255,255,0.6) !important;
+  border-color:rgba(0,0,0,0.08) !important;
+}
+body.light .tech-row:hover{
+  background:rgba(255,255,255,0.9) !important;
+}
+/* Fix before/after cards */
+body.light .ba-card{
+  background:rgba(255,255,255,0.6) !important;
+  border-color:rgba(0,0,0,0.08) !important;
+}
+
+</style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+</head>
+<body>
+
+<div class="reading-bar" id="readingBar"></div>
+
+<nav class="topnav">
+  <div class="nav-logo">Manifold</div>
+  <div class="nav-sep">/</div>
+  <div class="nav-crumb">What is Dimensionality Reduction?</div>
+  <a href="dashboard.html" class="nav-back">← Dashboard</a>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"><div class="blob b1"></div><div class="blob b2"></div></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Section 02 · Core Concept</div>
+    <h1 class="hero-title">What is<br><span>Dimensionality Reduction?</span></h1>
+    <p class="hero-body">
+      Imagine trying to describe a person using a hundred measurements.
+      Most of those measurements carry the same information.
+      Dimensionality reduction is the process of finding the few measurements that actually matter.
+    </p>
+    <div class="scroll-cue">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      Scroll to explore
+    </div>
+  </div>
+</section>
+
+<!-- SIMPLE ANALOGY -->
+<section class="section reveal">
+  <div class="eyebrow">Start Here</div>
+  <h2 class="section-title">Let's Start With an Analogy</h2>
+  <p class="section-body">Before any equations or algorithms, let's understand the idea through something familiar.</p>
+
+  <div class="analogy">
+    <div class="analogy-icon">🗺️</div>
+    <div>
+      <div class="analogy-label">Everyday Analogy</div>
+      <div class="analogy-title">A Map is Dimensionality Reduction</div>
+      <div class="analogy-text">
+        The real world is three-dimensional — buildings have height, cities have depth, terrain has elevation.
+        But a map squashes all of that into a flat 2D piece of paper.
+        You lose some information (like building height), but you gain something valuable:
+        you can now see patterns, routes, and relationships that were impossible to see in 3D.
+        That's exactly what dimensionality reduction does with data.
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy" style="border-color:rgba(245,158,11,.14);background:rgba(245,158,11,.04);">
+    <div class="analogy-icon">📸</div>
+    <div>
+      <div class="analogy-label" style="color:var(--gold);">Another Example</div>
+      <div class="analogy-title">A Photograph is Dimensionality Reduction</div>
+      <div class="analogy-text">
+        When you take a photo of a room, the camera collapses a 3D space into a 2D image.
+        Some depth information is lost — but the photo still captures the essence of what was there.
+        In data science, we do the same thing: we take high-dimensional data and compress it
+        into fewer dimensions while preserving the most important structure.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT DOES IT ACTUALLY DO -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">The Core Idea</div>
+  <h2 class="section-title">What Does It Actually Do?</h2>
+  <p class="section-body">
+    Data often has many features (columns). Dimensionality reduction takes that data
+    and creates a new, smaller set of features that still captures the same essential information.
+    Here's how to think about it step by step.
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">You start with high-dimensional data</div>
+        <div class="step-text">
+          Your dataset has many features — maybe 50, maybe 10,000. Each feature is one "dimension."
+          A dataset of hospital patients might have: age, weight, height, blood pressure, heart rate,
+          cholesterol, glucose, 20 lab test results... that's 30+ dimensions just to describe one patient.
+        </div>
+        <span class="step-example">🏥 Example: 30 measurements per patient</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Many features carry the same information</div>
+        <div class="step-text">
+          Height and weight are correlated — tall people tend to weigh more. Systolic and diastolic
+          blood pressure move together. When two features carry the same information,
+          one of them is redundant. High-dimensional datasets are full of this redundancy.
+        </div>
+        <span class="step-example">📊 Height &amp; weight are redundant — one captures the other</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">We find a smaller set of "combined" features</div>
+        <div class="step-text">
+          Instead of keeping all 30 measurements, we combine them into 3 or 4 new "summary" features
+          that capture most of the variation. These new features aren't the original ones —
+          they're mathematical combinations of them, designed to be as informative as possible.
+        </div>
+        <span class="step-example">✨ e.g. 30 features → 3 summary features, ideally keeping most (say ~90%) of the variation</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">Now we can see, understand, and use the data</div>
+        <div class="step-text">
+          With 2 or 3 dimensions, we can plot the data and actually look at it.
+          Patients with similar health profiles appear close together.
+          Outliers become visible. Patterns emerge. Models trained on this data are often faster, and sometimes more accurate.
+        </div>
+        <span class="step-example">📍 Similar patients cluster together on a 2D plot</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BEFORE / AFTER VISUAL -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">See It Live</div>
+  <h2 class="section-title">Before and After</h2>
+  <p class="section-body">
+    Here is the famous Iris dataset — measurements of 150 flowers from 3 species.
+    Each flower has 4 measurements: sepal length, sepal width, petal length, petal width.
+    Watch what happens when we reduce from 4 dimensions to 2.
+  </p>
+
+  <div class="ba-card">
+    <div class="ba-card-title">Iris Dataset — 4 Features Reduced to 2</div>
+    <div class="ba-card-sub">150 flowers · 3 species · 4 measurements each. After reduction, the species are easier to tell apart.</div>
+    <div class="ba-grid">
+      <div>
+        <div class="ba-side-label" style="color:var(--rose);">Before — raw view (2 of the 4 features)</div>
+        <canvas class="ba-c" id="beforeCanvas" height="260"></canvas>
+      </div>
+      <div class="ba-arrow-col">→</div>
+      <div>
+        <div class="ba-side-label" style="color:var(--green);">After — 2 dimensions (PCA)</div>
+        <canvas class="ba-c" id="afterCanvas" height="260"></canvas>
+      </div>
+    </div>
+    <div class="ba-note">
+      💡 <strong>Notice:</strong> In the raw view, <span style="color:#f43f5e;font-weight:500;">Setosa</span> is already separate, but Versicolor and Virginica overlap heavily.
+      After PCA, the first two components keep <strong id="irisEvr">~98%</strong> of the total variance (measured from the data) and the two overlapping species are pulled apart much more &mdash; though not perfectly.
+    </div>
+  </div>
+</section>
+
+<!-- WHY DO WE DO IT -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">Why Bother?</div>
+  <h2 class="section-title">Four Reasons We Use It</h2>
+  <p class="section-body">Dimensionality reduction isn't just a technical trick — it solves real problems.</p>
+
+  <div class="why-grid">
+    <div class="why-card">
+      <div class="why-icon">👁️</div>
+      <div class="why-title">To See the Data</div>
+      <div class="why-body">You can't plot 50-dimensional data. But reduce it to 2D, and suddenly you can see clusters, outliers, and patterns with your own eyes.</div>
+    </div>
+    <div class="why-card">
+      <div class="why-icon">🧹</div>
+      <div class="why-title">To Remove Noise</div>
+      <div class="why-body">Not every feature is useful. Some are just noise — random variation that confuses the analysis. Reduction tends to keep the dominant variation and can suppress noise &mdash; but it can also throw away small-but-useful signal, so it is not guaranteed.</div>
+    </div>
+    <div class="why-card">
+      <div class="why-icon">⚡</div>
+      <div class="why-title">To Make Computation Faster</div>
+      <div class="why-body">Fewer dimensions means faster algorithms, less storage, and quicker results. Critical when working with medical images, genetic data, or large surveys.</div>
+    </div>
+    <div class="why-card">
+      <div class="why-icon">🎯</div>
+      <div class="why-title">To Improve Predictions</div>
+      <div class="why-body">Machine learning models often perform better on reduced data because they're not distracted by redundant or noisy features. Less truly can be more.</div>
+    </div>
+  </div>
+</section>
+
+<!-- LINEAR VS NON-LINEAR (SIMPLE) -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">Two Families</div>
+  <h2 class="section-title">Linear vs Non-Linear Methods</h2>
+  <p class="section-body">
+    All dimensionality reduction techniques fall into one of two families.
+    Think of it like two different strategies for folding a map.
+  </p>
+
+  <div class="type-grid">
+    <div class="type-card" style="border-color:rgba(0,212,255,.18);">
+      <div class="type-tag" style="background:rgba(0,212,255,.1);color:var(--accent);">Linear Methods</div>
+      <div class="type-title">The "Straight Fold" Strategy</div>
+      <div class="type-body">
+        These methods find the best flat, straight projection of your data.
+        Imagine folding a piece of paper along a straight line — you can't capture curves.
+        They are <strong style="color:var(--text);">fast, simple, and easy to interpret,</strong>
+        and work very well when the data has a roughly straight structure.
+      </div>
+      <div class="type-examples">
+        <span class="pill" style="background:rgba(0,212,255,.1);color:var(--accent);">PCA</span>
+        <span class="pill" style="background:rgba(0,212,255,.1);color:var(--accent);">LDA</span>
+        <span class="pill" style="background:rgba(0,212,255,.1);color:var(--accent);">Factor Analysis</span>
+      </div>
+    </div>
+    <div class="type-card" style="border-color:rgba(124,58,237,.18);">
+      <div class="type-tag" style="background:rgba(124,58,237,.1);color:#a78bfa;">Non-Linear Methods</div>
+      <div class="type-title">The "Curved Fold" Strategy</div>
+      <div class="type-body">
+        These methods can follow curves and bends in the data — they unfold complex shapes.
+        Like peeling an orange and flattening the skin — only possible with flexibility.
+        They are <strong style="color:var(--text);">more powerful for complex data,</strong>
+        but slower and harder to explain mathematically.
+      </div>
+      <div class="type-examples">
+        <span class="pill" style="background:rgba(124,58,237,.1);color:#a78bfa;">t-SNE</span>
+        <span class="pill" style="background:rgba(124,58,237,.1);color:#a78bfa;">UMAP</span>
+        <span class="pill" style="background:rgba(124,58,237,.1);color:#a78bfa;">Isomap</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFOLD DEMO -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">Key Idea</div>
+  <h2 class="section-title">Data Has Hidden Structure</h2>
+  <p class="section-body">
+    Here's the reason dimensionality reduction works at all:
+    real data, even when it exists in many dimensions, tends to have a much simpler underlying structure.
+    Scientists call this the <strong style="color:var(--accent);">Manifold Hypothesis.</strong>
+    Click the examples below to see it.
+  </p>
+
+  <div class="manifold-card">
+    <div class="manifold-tabs">
+      <div class="m-tab active" onclick="setM('swiss',this)">Swiss Roll</div>
+      <div class="m-tab" onclick="setM('scurve',this)">S-Curve</div>
+      <div class="m-tab" onclick="setM('circle',this)">Circle</div>
+    </div>
+    <canvas id="mCanvas" style="width:100%;border-radius:12px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.05);display:block;" height="300"></canvas>
+    <div class="m-stats">
+      <div class="m-stat" style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.15);">
+        <div class="m-stat-label" style="color:#a78bfa;">Dimensions it lives in</div>
+        <div class="m-stat-val" style="color:#a78bfa;" id="mAmbient">3</div>
+      </div>
+      <div class="m-stat" style="background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.15);">
+        <div class="m-stat-label" style="color:var(--accent);">Dimensions it really needs</div>
+        <div class="m-stat-val" style="color:var(--accent);" id="mIntrinsic">2</div>
+      </div>
+    </div>
+    <div class="ba-note" id="mNote" style="margin-top:14px;">
+      The Swiss Roll looks like it needs 3 dimensions — but it's actually just a 2D sheet that has been rolled up.
+      If you unrolled it, every point could be described with just 2 numbers.
+      Non-linear dimensionality reduction methods do exactly this — they unroll the data.
+    </div>
+  </div>
+</section>
+
+<!-- TECHNIQUE PREVIEW -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">What's Coming Next</div>
+  <h2 class="section-title">The Techniques We'll Cover</h2>
+  <p class="section-body">Each technique has its own strengths. We'll explore all of them in detail in the following sections.</p>
+
+  <div class="tech-list">
+    <div class="tech-row">
+      <div class="tech-dot" style="background:var(--accent);"></div>
+      <div class="tech-name">PCA</div>
+      <div class="tech-type" style="background:rgba(0,212,255,.1);color:var(--accent);">Linear</div>
+      <div class="tech-desc">Finds the directions in which data varies the most. The most widely used technique — fast and interpretable.</div>
+      <div class="tech-when">Best for: general-purpose reduction</div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-dot" style="background:#a78bfa;"></div>
+      <div class="tech-name">t-SNE</div>
+      <div class="tech-type" style="background:rgba(124,58,237,.1);color:#a78bfa;">Non-Linear</div>
+      <div class="tech-desc">Specialised for visualisation. Groups similar points together on a 2D plot — revealing clusters beautifully.</div>
+      <div class="tech-when">Best for: visualising clusters</div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-dot" style="background:var(--green);"></div>
+      <div class="tech-name">UMAP</div>
+      <div class="tech-type" style="background:rgba(16,185,129,.1);color:var(--green);">Non-Linear</div>
+      <div class="tech-desc">Similar to t-SNE but faster, and often better at preserving global structure (largely thanks to its initialisation). A popular go-to for visualisation.</div>
+      <div class="tech-when">Best for: large datasets</div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-dot" style="background:var(--rose);"></div>
+      <div class="tech-name">LDA</div>
+      <div class="tech-type" style="background:rgba(244,63,94,.1);color:var(--rose);">Linear · Supervised</div>
+      <div class="tech-desc">Uses the known categories (labels) to find dimensions that best separate the groups. More focused than PCA.</div>
+      <div class="tech-when">Best for: classification tasks</div>
+    </div>
+    <div class="tech-row">
+      <div class="tech-dot" style="background:var(--gold);"></div>
+      <div class="tech-name">Isomap</div>
+      <div class="tech-type" style="background:rgba(245,158,11,.1);color:var(--gold);">Non-Linear · Geodesic</div>
+      <div class="tech-desc">Measures distances along the surface of the data manifold — like driving roads instead of flying as the crow flies — to unfold curved structures PCA cannot.</div>
+      <div class="tech-when">Best for: curved manifolds &amp; non-linear structure</div>
+    </div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section class="section reveal" style="padding-top:0;padding-bottom:100px;">
+  <div class="quiz-wrap">
+    <div class="quiz-eyebrow">Section Quiz</div>
+    <div class="quiz-title">Check Your Understanding</div>
+    <div class="quiz-sub">Five questions — no CS background needed, just the concepts from this section.</div>
+    <div class="q-progress" id="qProg"></div>
+
+    <div id="q0" class="q-card active">
+      <div class="q-num">Question 1 of 5</div>
+      <div class="q-text">In simple terms, what does dimensionality reduction do?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(0,0,false)">It adds more features to the dataset to improve accuracy</button>
+        <button class="q-opt" onclick="ans(0,1,true)">It reduces many features to fewer features while keeping the important information</button>
+        <button class="q-opt" onclick="ans(0,2,false)">It removes all rows from a dataset that have missing values</button>
+        <button class="q-opt" onclick="ans(0,3,false)">It converts data from numbers to text</button>
+      </div>
+      <div class="q-feedback" id="fb0">Dimensionality reduction takes a dataset with many features (columns) and creates a smaller set of features that still captures the essential structure — like summarising a long report into key bullet points without losing the meaning.</div>
+    </div>
+
+    <div id="q1" class="q-card">
+      <div class="q-num">Question 2 of 5</div>
+      <div class="q-text">Why is a map a good analogy for dimensionality reduction?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(1,0,false)">Because maps are always accurate and never lose information</button>
+        <button class="q-opt" onclick="ans(1,1,false)">Because maps use colours to show data</button>
+        <button class="q-opt" onclick="ans(1,2,true)">Because a map compresses a 3D world into 2D, keeping the useful structure while losing some detail</button>
+        <button class="q-opt" onclick="ans(1,3,false)">Because maps and data both use coordinates</button>
+      </div>
+      <div class="q-feedback" id="fb1">A map takes the 3D real world and flattens it to 2D — you lose building height, but you gain the ability to see routes, cities, and distances clearly. Dimensionality reduction does the same thing with data: trade some detail for clarity and usability.</div>
+    </div>
+
+    <div id="q2" class="q-card">
+      <div class="q-num">Question 3 of 5</div>
+      <div class="q-text">What is the main advantage of a linear method like PCA over a non-linear method?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(2,0,false)">It can handle curved structures better</button>
+        <button class="q-opt" onclick="ans(2,1,true)">It is faster, simpler, and easier to interpret</button>
+        <button class="q-opt" onclick="ans(2,2,false)">It always gives better results</button>
+        <button class="q-opt" onclick="ans(2,3,false)">It requires no data at all</button>
+      </div>
+      <div class="q-feedback" id="fb2">Linear methods like PCA project data onto straight subspaces — this is computationally fast and the results are easy to explain. The trade-off is they can't capture complex, curved structures that non-linear methods handle well.</div>
+    </div>
+
+    <div id="q3" class="q-card">
+      <div class="q-num">Question 4 of 5</div>
+      <div class="q-text">You have a dataset of 150 flowers, each with 4 measurements. After PCA, you have 2 dimensions. The three species of flower are now clearly separated in a plot. What just happened?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(3,0,false)">The algorithm memorised which flowers belong to which species</button>
+        <button class="q-opt" onclick="ans(3,1,false)">Two of the four measurements were deleted</button>
+        <button class="q-opt" onclick="ans(3,2,true)">The 4 measurements were combined into 2 new summary features that best capture the differences between flowers</button>
+        <button class="q-opt" onclick="ans(3,3,false)">The dataset was filtered to only include 2 species</button>
+      </div>
+      <div class="q-feedback" id="fb3">PCA doesn't delete features — it creates new ones that are combinations of the originals. These new features (called Principal Components) are designed to capture as much variation as possible, often revealing the class structure that was hidden in the raw data.</div>
+    </div>
+
+    <div id="q4" class="q-card">
+      <div class="q-num">Question 5 of 5</div>
+      <div class="q-text">The Manifold Hypothesis says that real-world data, even when it has many dimensions, tends to:</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(4,0,false)">Fill all available dimensions equally</button>
+        <button class="q-opt" onclick="ans(4,1,false)">Always be perfectly linear</button>
+        <button class="q-opt" onclick="ans(4,2,true)">Have a much simpler underlying structure — like a curved surface — that doesn't need all those dimensions</button>
+        <button class="q-opt" onclick="ans(4,3,false)">Be impossible to reduce without losing all information</button>
+      </div>
+      <div class="q-feedback" id="fb4">The Manifold Hypothesis is the theoretical foundation for why dimensionality reduction works. A face has 10,000 pixels, but "faces" are controlled by a handful of factors: lighting, angle, expression. The data sits on a low-dimensional surface within that enormous space.</div>
+    </div>
+
+    <div class="quiz-footer">
+      <button class="q-btn q-btn-sec" onclick="prev()">← Previous</button>
+      <button class="q-btn q-btn-main" onclick="next()">Next →</button>
+      <div class="q-score" id="qScore">Score: 0 / 5</div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* reading bar */
+window.addEventListener('scroll',()=>{
+  document.getElementById('readingBar').style.width=
+    (window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%';
+});
+
+/* reveal */
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+/* real Iris data */
+function genIris(){
+  // REAL Fisher Iris. "Before" = two raw features (sepal length vs width); "After" = real PCA top-2 (computed here).
+  const I=MCore.IRIS,cols=['#f43f5e','#00d4ff','#10b981'];
+  const pc=MCore.pca(I.data,2),P=pc.projected;
+  const norm=(a)=>{const mn=Math.min(...a),mx=Math.max(...a);return a.map(v=>(v-mn)/(mx-mn)*5.2-2.6);};
+  const px=norm(P.map(p=>p[0])),py=norm(P.map(p=>p[1])),rx=norm(I.data.map(r=>r[0])),ry=norm(I.data.map(r=>r[1]));
+  window.IRIS_EVR=(pc.evr[0]+pc.evr[1])*100;
+  return I.data.map((r,i)=>({x:px[i],y:py[i],rx:rx[i],ry:ry[i],col:cols[I.labels[i]]}));
+}
+const iris=genIris();
+
+function drawCanvas(id,use2D){
+  const cv=document.getElementById(id);
+  cv.width=cv.offsetWidth;
+  const W=cv.width,H=260,ctx=cv.getContext('2d'),m=28;
+  ctx.clearRect(0,0,W,H);
+  const rng=[-2.8,2.8];
+  const sc=(v)=>m+(v-rng[0])/(rng[1]-rng[0])*(W-2*m);
+  const sy=(v)=>m+(1-(v-rng[0])/(rng[1]-rng[0]))*(H-2*m);
+
+  if(!use2D){
+    // noisy 4D projected as scatter
+    iris.forEach(p=>{
+      const px=sc(p.rx);const py=sy(p.ry);
+      ctx.beginPath();ctx.arc(px,py,3.2,0,Math.PI*2);
+      ctx.fillStyle=p.col+'80';ctx.fill();
+    });
+    ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='11px Inter';
+    ctx.fillText('Raw features: sepal length vs sepal width',m,H-10);
+  } else {
+    iris.forEach(p=>{
+      ctx.beginPath();ctx.arc(sc(p.x),sy(p.y),3.2,0,Math.PI*2);
+      ctx.fillStyle=p.col+'99';ctx.fill();
+      ctx.strokeStyle=p.col;ctx.lineWidth=.6;ctx.stroke();
+    });
+    [{col:'#f43f5e',n:'Setosa'},{col:'#00d4ff',n:'Versicolor'},{col:'#10b981',n:'Virginica'}]
+      .forEach((c,i)=>{
+        ctx.beginPath();ctx.arc(m+6,H-44+i*16,4,0,Math.PI*2);ctx.fillStyle=c.col;ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='11px Inter';ctx.fillText(c.n,m+16,H-40+i*16);
+      });
+    ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='11px Inter';
+    ctx.fillText('PC1 →',W-50,H-10);
+  }
+}
+{const e=document.getElementById('irisEvr');if(e)e.textContent=window.IRIS_EVR.toFixed(1)+'%';}
+drawCanvas('beforeCanvas',false);drawCanvas('afterCanvas',true);
+window.addEventListener('resize',()=>{drawCanvas('beforeCanvas',false);drawCanvas('afterCanvas',true);});
+
+/* manifold */
+const mData={
+  swiss:{ambient:'3D',intrinsic:'2D',note:'The Swiss Roll is just a 2D sheet that has been rolled up into 3D space. You only need 2 numbers to describe any point on it — non-linear methods "unroll" it back to 2D.'},
+  scurve:{ambient:'3D',intrinsic:'2D',note:'The S-Curve is a 2D surface twisted into 3D. Despite appearing complex, any point on it can be described with just 2 coordinates. A linear method like PCA can\'t unroll this — but UMAP can.'},
+  circle:{ambient:'2D',intrinsic:'1D',note:'A circle lives in 2D space, but only needs 1 number to describe any point on it — the angle. This is the simplest example of a manifold: a 1D structure embedded in 2D space.'},
+};
+function setM(type,el){
+  document.querySelectorAll('.m-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const mc=document.getElementById('mCanvas');
+  mc.width=mc.offsetWidth;
+  const W=mc.width,H=300,ctx=mc.getContext('2d'),cx=W/2,cy=H/2;
+  ctx.clearRect(0,0,W,H);
+  const info=mData[type];
+  document.getElementById('mAmbient').textContent=info.ambient;
+  document.getElementById('mIntrinsic').textContent=info.intrinsic;
+  document.getElementById('mNote').textContent=info.note;
+  if(type==='swiss'){
+    for(let i=0;i<900;i++){
+      const t=1.5*Math.PI*(1+2*(i/900));
+      const h=(Math.random()-.5)*28;
+      const x=t*Math.cos(t)*5.5;const z=t*Math.sin(t)*5.5;
+      ctx.beginPath();ctx.arc(cx+x*.85+z*.18,cy+h*2.2-z*.28,1.6,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${(i/900)*300},75%,62%,.72)`;ctx.fill();
+    }
+  } else if(type==='scurve'){
+    for(let i=0;i<700;i++){
+      const t=Math.PI*(i/700*2-1);
+      const x=Math.sin(t)*90;const y=(Math.random()-.5)*130;const z=Math.sign(t)*(Math.cos(t)-1)*42;
+      ctx.beginPath();ctx.arc(cx+x+z*.28,cy+y,1.8,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${((t+Math.PI)/(2*Math.PI))*260},78%,60%,.73)`;ctx.fill();
+    }
+  } else if(type==='circle'){
+    for(let i=0;i<400;i++){
+      const t=(i/400)*Math.PI*2;
+      const r=100+(Math.random()-.5)*9;
+      ctx.beginPath();ctx.arc(cx+r*Math.cos(t),cy+r*Math.sin(t),2.4,0,Math.PI*2);
+      ctx.fillStyle=`hsla(${(t/(Math.PI*2))*360},80%,62%,.82)`;ctx.fill();
+    }
+    ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='12px Inter';
+    ctx.fillText('Any point needs only 1 number: the angle θ',cx-120,H-14);
+  }
+}
+const mc=document.getElementById('mCanvas');mc.width=mc.offsetWidth;
+setM('swiss',document.querySelector('.m-tab'));
+window.addEventListener('resize',()=>{mc.width=mc.offsetWidth;const a=document.querySelector('.m-tab.active');if(a)setM(a.textContent.includes('Swiss')?'swiss':a.textContent.includes('S')?'scurve':'circle',a);});
+
+/* quiz */
+let cur=0,score=0,done=new Array(5).fill(null);
+function buildProg(){
+  document.getElementById('qProg').innerHTML=Array.from({length:5},(_,i)=>{
+    const cl=done[i]===null?'':(done[i]?'correct':'wrong');
+    return `<div class="q-pip ${cl} ${i===cur?'current':''}"></div>`;
+  }).join('');
+}
+function ans(qi,oi,correct){
+  if(done[qi]!==null)return;
+  done[qi]=correct;if(correct)score++;
+  document.getElementById('qScore').textContent=`Score: ${score} / 5`;
+  const card=document.getElementById(`q${qi}`);
+  card.querySelectorAll('.q-opt').forEach((o,i)=>{
+    o.disabled=true;
+    if(i===oi)o.classList.add(correct?'correct':'wrong');
+  });
+  const fb=document.getElementById(`fb${qi}`);
+  fb.classList.add('show',correct?'fb-correct':'fb-wrong');
+  fb.textContent=(correct?'✅ Great! ':'❌ Not quite. ')+fb.textContent;
+  buildProg();
+}
+function next(){if(cur<4){document.getElementById(`q${cur}`).classList.remove('active');cur++;document.getElementById(`q${cur}`).classList.add('active');buildProg();}}
+function prev(){if(cur>0){document.getElementById(`q${cur}`).classList.remove('active');cur--;document.getElementById(`q${cur}`).classList.add('active');buildProg();}}
+buildProg();
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>

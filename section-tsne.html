@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>t-SNE — t-Distributed Stochastic Neighbour Embedding | MANIFOLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060b1a;--surface:rgba(255,255,255,0.03);--surface2:rgba(255,255,255,0.06);
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --accent:#f43f5e;--accent2:#8b5cf6;--cyan:#00d4ff;--gold:#f59e0b;--green:#10b981;
+  --text:#dde8f5;--muted:#4e6a84;--soft:#7a9ab8;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden}
+
+#prog{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:9999;transition:width .06s}
+
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:14px 40px;background:rgba(6,11,26,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav a{color:var(--soft);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}.nav a:hover{color:var(--accent)}
+.nav-tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.1em}
+
+/* Hero */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#hero-cvs{position:absolute;inset:0;width:100%;height:100%}
+.hero-inner{position:relative;z-index:10;text-align:center;padding:0 24px}
+.eyebrow{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:22px}
+.hero-inner h1{font-family:'Playfair Display',serif;font-size:clamp(44px,7.5vw,98px);font-weight:700;line-height:1.03;background:linear-gradient(130deg,#fff 0%,var(--accent) 50%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:24px}
+.hero-sub{font-size:18px;color:var(--soft);max-width:560px;margin:0 auto 48px;line-height:1.65}
+.hero-badge{display:inline-flex;gap:20px;align-items:center;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:100px;padding:10px 24px;font-size:13px;color:var(--accent);margin-bottom:36px}
+.hero-scroll{display:flex;align-items:center;gap:8px;justify-content:center;color:var(--muted);font-size:13px;animation:float 2.4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+
+/* Layout */
+.wrap{max-width:1100px;margin:0 auto;padding:0 40px}
+.sec{padding:96px 0}
+.sec-hd{text-align:center;margin-bottom:64px}
+.sec-hd h2{font-family:'Playfair Display',serif;font-size:clamp(30px,4vw,46px);font-weight:700;margin-bottom:14px}
+.sec-hd p{color:var(--soft);font-size:16px;max-width:560px;margin:0 auto}
+.divider{height:1px;background:var(--border);max-width:1100px;margin:0 auto}
+
+/* Analogy */
+.analogy-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:768px){.analogy-grid{grid-template-columns:1fr}}
+.analogy-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;position:relative;overflow:hidden}
+.analogy-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.analogy-icon{font-size:34px;margin-bottom:14px}
+.analogy-card h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:12px}
+.analogy-card p{color:var(--soft);font-size:14.5px;line-height:1.75}
+.vs-bar{text-align:center;padding:32px 0 0;color:var(--soft);font-size:14px}
+.vs-bar strong{color:var(--accent)}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:80px}
+.step-block{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+@media(max-width:900px){.step-block{grid-template-columns:1fr}}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--accent);color:#fff;border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;margin-bottom:16px}
+.step-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:14px}
+.step-exp{color:var(--soft);font-size:14.5px;line-height:1.8;margin-bottom:20px}
+
+/* Math */
+.math-block{background:#0a1628;border:1px solid rgba(244,63,94,.2);border-radius:12px;padding:24px;margin:16px 0}
+.formula{font-family:'JetBrains Mono',monospace;font-size:18px;color:#ffb3bf;text-align:center;padding:12px 8px;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:16px;letter-spacing:.03em;line-height:1.8}
+.derivation{font-size:13.5px;color:var(--soft);line-height:1.75}
+.derivation strong{color:var(--accent)}
+.mi{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#ffb3bf;background:rgba(244,63,94,.1);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.deriv-step{margin:10px 0;padding-left:12px;border-left:2px solid rgba(244,63,94,.25);font-size:13px;color:var(--soft)}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:100px;padding:7px 16px;font-size:13px;color:var(--accent);margin-top:16px}
+
+/* Canvas */
+.cvs-wrap{position:relative}
+.step-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
+.cvs-btn{margin-top:10px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
+.cvs-btn:hover{background:rgba(244,63,94,.2)}
+
+/* Properties */
+.props-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.props-grid{grid-template-columns:1fr}}
+.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.prop-card h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:12px;font-weight:600}
+.prop-card ul{list-style:none;color:var(--soft);font-size:13.5px;line-height:1.9}
+.prop-card ul li::before{content:'→ ';color:var(--accent)}
+
+/* Explorer */
+.explorer-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
+.explorer-hd{margin-bottom:32px}
+.explorer-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
+.explorer-hd p{color:var(--soft);font-size:15px}
+.ds-picker{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.ds-btn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--soft);padding:8px 18px;border-radius:100px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ds-btn:hover{border-color:rgba(244,63,94,.4);color:var(--accent)}
+.ds-btn.active{background:rgba(244,63,94,.12);border-color:var(--accent);color:var(--accent)}
+#ds-info{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:22px;min-height:16px}
+.ex-layout{display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start}
+@media(max-width:1050px){.ex-layout{grid-template-columns:1fr}}
+#ex-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
+.ex-controls{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.ctrl-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ctrl-btn:hover{background:rgba(255,255,255,.1)}
+.ctrl-btn.primary{background:rgba(244,63,94,.12);border-color:rgba(244,63,94,.3);color:var(--accent)}
+.ctrl-btn.primary:hover{background:rgba(244,63,94,.22)}
+.iter-bar-wrap{margin-top:12px}
+.iter-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between}
+.iter-bar-bg{height:3px;background:rgba(255,255,255,.06);border-radius:2px}
+.iter-bar-fill{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;width:0%;transition:width .12s}
+.perp-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.perp-row label{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.perp-row input[type=range]{flex:1;accent-color:var(--accent)}
+#perp-val{font-size:12px;color:var(--accent);font-family:'JetBrains Mono',monospace;min-width:22px}
+
+/* Derivation panel */
+.deriv-panel{background:#080f20;border:1px solid rgba(244,63,94,.15);border-radius:12px;padding:26px;min-height:460px}
+.dp-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+.dp-title{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:12px}
+.dp-formula{font-family:'JetBrains Mono',monospace;font-size:13px;color:#ffb3bf;background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.15);padding:10px 14px;border-radius:8px;margin:12px 0;line-height:1.75}
+.dp-body{font-size:13px;color:var(--soft);line-height:1.75}
+.dp-body strong{color:var(--text)}
+.dp-numeric{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);line-height:1.9;white-space:pre;overflow:auto;max-height:160px}
+.dp-status{margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px 12px;border-radius:8px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);color:var(--accent2)}
+
+/* Quiz */
+.quiz-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
+.quiz-hd{text-align:center;margin-bottom:40px}
+.quiz-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
+.quiz-hd p{color:var(--soft);font-size:15px}
+.quiz-q{background:#080f20;border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:18px;transition:border-color .2s}
+.quiz-q.correct{border-color:var(--green)}.quiz-q.incorrect{border-color:var(--accent)}
+.q-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px}
+.q-text{font-size:15.5px;font-weight:500;margin-bottom:16px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:580px){.opts{grid-template-columns:1fr}}
+.opt-btn{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--soft);padding:12px 15px;border-radius:8px;font-size:13.5px;cursor:pointer;transition:all .2s;text-align:left;font-family:'DM Sans',sans-serif;line-height:1.45}
+.opt-btn:hover:not(:disabled){border-color:rgba(244,63,94,.3);color:var(--text)}
+.opt-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(244,63,94,.08)}
+.opt-btn.correct-ans{border-color:var(--green);color:var(--green);background:rgba(16,185,129,.08)}
+.opt-btn.wrong-ans{border-color:var(--accent);color:var(--accent);background:rgba(244,63,94,.08)}
+.feedback{margin-top:12px;font-size:13px;display:none;padding:10px 14px;border-radius:8px}
+.feedback.show-c{display:block;color:var(--green);background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2)}
+.feedback.show-w{display:block;color:#f87171;background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2)}
+.quiz-submit{display:block;margin:28px auto 0;background:var(--accent);color:#fff;border:none;padding:13px 40px;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.quiz-submit:hover{opacity:.88}
+.quiz-result{text-align:center;padding:40px;display:none}
+.score-big{font-family:'Playfair Display',serif;font-size:72px;font-weight:700;color:var(--accent)}
+.score-sub{font-size:18px;color:var(--soft);margin-bottom:24px}
+
+/* Comparison callout */
+.compare-box{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:24px;margin-top:32px}
+.compare-box h4{color:var(--accent2);font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cmp-col{font-size:13px;color:var(--soft);line-height:1.8}
+.cmp-col strong{color:var(--text);display:block;margin-bottom:4px}
+
+/* Reveal */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s,transform .7s}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+.footer{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;border-top:1px solid var(--border)}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:rgba(255,255,255,0.12);border-color:var(--accent,#00d4ff);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
+</style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+</head>
+<body>
+<div id="prog"></div>
+
+<nav class="nav">
+  <a href="dashboard.html">← Dashboard</a>
+  <span class="nav-tag">03B · t-SNE</span>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <canvas id="hero-cvs"></canvas>
+  <div class="hero-inner">
+    <span class="eyebrow">Section 03B — Techniques</span>
+    <div class="hero-badge">⚠️ Non-linear · Probabilistic · Iterative</div>
+    <h1>t-Distributed<br>Stochastic<br>Neighbour<br>Embedding</h1>
+    <p class="hero-sub">A technique that preserves local neighbourhood relationships by modelling them as probabilities — then minimising the mismatch between high and low dimensions.</p>
+    <div class="hero-scroll">Scroll to explore ↓</div>
+  </div>
+</section>
+
+<!-- ═══ ANALOGIES ═══ -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">Before the Math</span>
+      <h2>Two Analogies</h2>
+      <p>t-SNE is fundamentally different from PCA. Understand the philosophy before the formulas.</p>
+    </div>
+    <div class="analogy-grid">
+      <div class="analogy-card">
+        <div class="analogy-icon">🏘️</div>
+        <h3>Rearranging a Neighbourhood</h3>
+        <p>Imagine you have a map of a city with many neighbourhoods. You need to recreate this map on a smaller piece of paper — but the only rule is: <strong>keep neighbours together</strong>. You don't care about exact distances across the whole city. You push each neighbourhood into a cluster, keep friends close, and don't worry if two distant neighbourhoods end up far apart in different ways than before.</p>
+      </div>
+      <div class="analogy-card">
+        <div class="analogy-icon">🧲</div>
+        <h3>Magnets and Springs</h3>
+        <p>Imagine each data point is a ball. Points that are <strong>similar in high dimensions are connected by a strong spring</strong> — they attract. Points that are dissimilar are pushed apart. t-SNE places all the balls randomly, then lets physics run: springs pull similar points together, repulsion pushes everything else apart. <strong>The final resting position is the t-SNE layout.</strong></p>
+      </div>
+    </div>
+    <div class="vs-bar">
+      <strong>Key difference from PCA:</strong> PCA finds a fixed mathematical direction and projects everything onto it. t-SNE has no fixed formula for output — it <em>learns</em> the 2D layout iteratively, optimising for local neighbourhood preservation.
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ MATH STEPS ═══ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-hd reveal">
+      <span class="eyebrow">The Algorithm</span>
+      <h2>Five Steps of t-SNE</h2>
+      <p>Each step derives its formula from scratch — where it comes from, why it's written that way, and what problem it solves.</p>
+    </div>
+    <div class="steps">
+
+      <!-- STEP 1 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">1</div>
+          <div class="step-title">Compute High-Dimensional Similarities</div>
+          <div class="step-exp">For every pair of points in the original high-dimensional space, we ask: <em>how similar are they?</em> We don't use raw distances — instead we convert distances to probabilities using a bell-curve (Gaussian). Close points get high probability; far points get near-zero. The width of the bell-curve (σᵢ) is tuned separately for each point based on the <strong>perplexity</strong> parameter.</div>
+          <div class="math-block">
+            <div class="formula">p<sub>j|i</sub> = exp(−‖xᵢ−xⱼ‖² / 2σᵢ²)<br>─────────────────────────<br>Σₖ≠ᵢ exp(−‖xᵢ−xₖ‖² / 2σᵢ²)</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              We start with the Euclidean distance between xᵢ and xⱼ:<br>
+              <div class="deriv-step"><span class="mi">dist² = ‖xᵢ − xⱼ‖²</span> — squared distance in high-D space</div>
+              We pass this through a <em>Gaussian kernel</em> — a bell-shaped function that converts distances to similarity scores:
+              <div class="deriv-step"><span class="mi">raw similarity = exp(−dist² / 2σᵢ²)</span></div>
+              The denominator normalises over all other points so the values sum to 1 (a valid probability distribution):
+              <div class="deriv-step"><span class="mi">p_{j|i}</span> is the probability that xᵢ would choose xⱼ as a neighbour</div>
+              <strong>What is σᵢ?</strong><br>
+              The bandwidth σᵢ is chosen per-point so that the distribution's entropy matches the chosen <em>perplexity</em>:<br>
+              <div class="deriv-step"><span class="mi">Perp = 2^H</span> where <span class="mi">H = −Σⱼ p_{j|i} log₂ p_{j|i}</span></div>
+              Perplexity ≈ effective number of neighbours considered. Found by binary search on σᵢ.
+            </div>
+          </div>
+          <span class="pill">💡 Perplexity (5–50) controls how many neighbours each point cares about</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs1" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(1)">▶ Show Similarity Heatmap</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">2</div>
+          <div class="step-title">Symmetrise the Probabilities</div>
+          <div class="step-exp">The conditional probability p_{j|i} is not the same as p_{i|j} — the Gaussian widths σᵢ differ per point. Before we can use these probabilities, we symmetrise them into a single joint probability p_{ij} that represents the probability of the <em>pair</em> (i, j) being neighbours.</div>
+          <div class="math-block">
+            <div class="formula">p<sub>ij</sub> = (p<sub>j|i</sub> + p<sub>i|j</sub>) / 2n</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              The asymmetric conditionals p_{j|i} and p_{i|j} differ because each point uses its own σ. We want a symmetric joint probability <span class="mi">P</span> over all pairs (i,j) such that:
+              <div class="deriv-step"><span class="mi">p_{ij} = p_{ji}</span> (symmetry is required for the gradient)</div>
+              <div class="deriv-step"><span class="mi">Σᵢ Σⱼ p_{ij} = 1</span> (valid joint probability over all n² pairs)</div>
+              The simplest symmetric combination that satisfies both is:
+              <div class="deriv-step"><span class="mi">p_{ij} = (p_{j|i} + p_{i|j}) / 2n</span></div>
+              Dividing by 2n ensures the values sum to 1 over all n² pairs, and symmetry is guaranteed by averaging.<br><br>
+              <strong>Why does this matter?</strong> With symmetric P, every pair (i,j) contributes equally to the cost function. Without symmetry, outlier points with very large σᵢ would dominate.
+            </div>
+          </div>
+          <span class="pill">💡 Symmetrising ensures every pair contributes equally to the layout</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs2" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(2)">▶ Show Symmetrisation</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">3</div>
+          <div class="step-title">Define Low-Dimensional Similarities</div>
+          <div class="step-exp">In the 2D (or 3D) output space, we define a <em>different</em> similarity measure between points yᵢ and yⱼ. We use a <strong>Student t-distribution with 1 degree of freedom</strong> (also called a Cauchy distribution) instead of a Gaussian. This is the key trick that gives t-SNE its name — and it's what makes the algorithm work much better than its predecessor SNE.</div>
+          <div class="math-block">
+            <div class="formula">q<sub>ij</sub> = (1 + ‖yᵢ−yⱼ‖²)⁻¹<br>──────────────────────────<br>Σₖ≠ₗ (1 + ‖yₖ−yₗ‖²)⁻¹</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              Original SNE used a Gaussian in the low-dimensional space too. The problem: in high dimensions, distances between points are much larger. If we use a Gaussian in low-D too, moderate distances in high-D get mapped to near-zero probability — everything collapses together.<br><br>
+              The Student t-distribution with 1 degree of freedom has <em>much heavier tails</em>:
+              <div class="deriv-step"><span class="mi">Gaussian tail: falls off as exp(−r²)</span> — drops to zero rapidly</div>
+              <div class="deriv-step"><span class="mi">Student-t tail: falls off as (1+r²)⁻¹</span> — drops much more slowly</div>
+              This means <strong>moderately dissimilar points in high-D can be placed far apart in 2D without losing too much probability</strong> — giving clusters room to breathe. The denominator again normalises to sum to 1, making Q a valid probability distribution over all n(n−1) pairs.
+            </div>
+          </div>
+          <span class="pill">💡 The heavy t-distribution tail prevents cluster collapse — the key insight of t-SNE</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs3" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(3)">▶ Compare Distributions</button>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">4</div>
+          <div class="step-title">Define the Cost Function (KL Divergence)</div>
+          <div class="step-exp">Now we have two probability distributions: P (high-dimensional similarities, fixed) and Q (low-dimensional similarities, which change as we move points around). We want Q to match P as closely as possible. The measure of mismatch between two probability distributions is <strong>KL Divergence</strong> — our cost function to minimise.</div>
+          <div class="math-block">
+            <div class="formula">C = KL(P ‖ Q) = Σᵢ Σⱼ p<sub>ij</sub> log(p<sub>ij</sub> / q<sub>ij</sub>)</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              KL divergence (Kullback-Leibler divergence) is the standard information-theoretic measure of how different two distributions P and Q are:
+              <div class="deriv-step"><span class="mi">KL(P‖Q) = Σᵢ P(i) · log(P(i)/Q(i))</span></div>
+              Properties that make it ideal here:
+              <div class="deriv-step"><span class="mi">KL(P‖Q) ≥ 0</span> always (non-negative)</div>
+              <div class="deriv-step"><span class="mi">KL(P‖Q) = 0</span> only when P = Q perfectly</div>
+              <div class="deriv-step">Penalises putting q_{ij} small when p_{ij} is large (nearby points pushed far apart) much more than the reverse</div>
+              <strong>What does this asymmetry mean?</strong><br>
+              KL is asymmetric: it strongly penalises placing two similar high-D points far apart in 2D. This means t-SNE <strong>prioritises preserving local structure</strong> (nearby neighbours) over preserving global structure (relative positions of distant clusters).
+            </div>
+          </div>
+          <span class="pill">💡 t-SNE cares much more about keeping close things close than about distant things</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs4" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(4)">▶ Animate Cost Surface</button>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">5</div>
+          <div class="step-title">Minimise via Gradient Descent</div>
+          <div class="step-exp">We minimise the KL divergence cost by iteratively moving every 2D point yᵢ in the direction that reduces the cost most. This direction is the <em>gradient</em> of C with respect to yᵢ. We apply it using gradient descent — a small step in the downhill direction at each iteration — until the layout stabilises.</div>
+          <div class="math-block">
+            <div class="formula">∂C/∂yᵢ = 4 Σⱼ (p<sub>ij</sub> − q<sub>ij</sub>)(yᵢ − yⱼ)(1 + ‖yᵢ−yⱼ‖²)⁻¹</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              We differentiate C = Σᵢⱼ p_{ij} log(p_{ij}/q_{ij}) with respect to yᵢ. Since p_{ij} is fixed (high-D data doesn't change), only q_{ij} depends on yᵢ.
+              <div class="deriv-step">Step 1: <span class="mi">∂C/∂yᵢ = −Σⱼ p_{ij} · (1/q_{ij}) · ∂q_{ij}/∂yᵢ</span></div>
+              <div class="deriv-step">Step 2: Applying chain rule to the Student-t formula: <span class="mi">∂q_{ij}/∂yᵢ</span> introduces the factor <span class="mi">(1+‖yᵢ−yⱼ‖²)⁻¹ · (yᵢ−yⱼ)</span></div>
+              <div class="deriv-step">Step 3: After simplification and symmetrisation, the factor 4 emerges from counting both (i,j) and (j,i) pairs</div>
+              <strong>Reading the gradient:</strong><br>
+              <div class="deriv-step">When <span class="mi">p_{ij} > q_{ij}</span>: points are too far apart in 2D → <strong>attractive force</strong> pulling yᵢ toward yⱼ</div>
+              <div class="deriv-step">When <span class="mi">p_{ij} &lt; q_{ij}</span>: points are too close in 2D → <strong>repulsive force</strong> pushing yᵢ away from yⱼ</div>
+              Update rule with momentum: <span class="mi">Y(t) = Y(t−1) + η · ∂C/∂Y + α(t)·[Y(t−1)−Y(t−2)]</span>
+            </div>
+          </div>
+          <span class="pill">💡 Each iteration is a tug-of-war between attraction (near pairs) and repulsion (far pairs)</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs5" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(5)">▶ Animate Gradient Step</button>
+        </div>
+      </div>
+
+    </div><!-- /steps -->
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ KEY PROPERTIES ═══ -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">Reference</span>
+      <h2>Key Properties of t-SNE</h2>
+    </div>
+    <div class="props-grid">
+      <div class="prop-card">
+        <h4>✓ Strengths</h4>
+        <ul>
+          <li>Captures non-linear structure PCA cannot see</li>
+          <li>Excellent at separating clusters visually</li>
+          <li>Works well on very high-dimensional data (images, text embeddings)</li>
+          <li>Local neighbourhood structure is faithfully preserved</li>
+          <li>Perplexity gives intuitive control over scale of structure</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>✗ Limitations</h4>
+        <ul>
+          <li>Does NOT preserve global distances (cluster sizes/positions misleading)</li>
+          <li>Slow — O(n²) per iteration, runs for 1000+ iterations</li>
+          <li>Non-deterministic: different runs give different layouts</li>
+          <li>No inverse transform — cannot project new points</li>
+          <li>Hyperparameter-sensitive: perplexity, iterations, learning rate all matter</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>⏰ When to Use t-SNE</h4>
+        <ul>
+          <li>Visualising clusters in high-dimensional data (images, genomics)</li>
+          <li>Exploratory data analysis — finding unexpected groupings</li>
+          <li>When PCA gives a boring flat projection with no separation</li>
+          <li>Inspecting neural network embeddings or word vectors</li>
+          <li>Never for reconstruction or downstream ML (non-invertible)</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>🌍 Real-World Uses</h4>
+        <ul>
+          <li>Single-cell RNA sequencing (UMAP now dominant, but t-SNE pioneered it)</li>
+          <li>Visualising word embeddings (Word2Vec, GloVe)</li>
+          <li>Image manifold exploration (MNIST digit clusters)</li>
+          <li>Anomaly detection in high-D sensor data</li>
+          <li>Understanding what neural nets have learned</li>
+        </ul>
+      </div>
+    </div>
+    <div class="compare-box">
+      <h4>⚖️ t-SNE vs PCA — When to Use Which</h4>
+      <div class="compare-grid">
+        <div class="cmp-col">
+          <strong>Use PCA when:</strong>
+          Linear structure, fast preprocessing needed, you need interpretable components, you want to project new data points, global distances matter, or you need reconstruction.
+        </div>
+        <div class="cmp-col">
+          <strong>Use t-SNE when:</strong>
+          Non-linear clusters, exploratory visualisation, local group structure matters most, you have time to run it, and you only care about the 2D/3D visual output.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ DATASET EXPLORER ═══ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="explorer-wrap reveal">
+      <div class="explorer-hd">
+        <span class="eyebrow">Live Demo</span>
+        <h2>t-SNE Explorer</h2>
+        <p>Watch <strong>real t-SNE gradient descent running in your browser</strong> — from random initialisation to final layout. See what PCA misses.</p>
+      </div>
+
+      <div class="ds-picker" id="ds-picker">
+        <button class="ds-btn active" data-ds="iris">🌸 Iris Flowers</button>
+        <button class="ds-btn" data-ds="moons">🌙 Two Moons</button>
+        <button class="ds-btn" data-ds="blobs">🔵 Four Clusters</button>
+        <button class="ds-btn" data-ds="swiss">🥐 Swiss Roll</button>
+        <button class="ds-btn" data-ds="circles">⭕ Concentric Circles</button>
+      </div>
+      <div id="ds-info"></div>
+
+      <div class="ex-layout">
+        <div>
+          <canvas id="ex-cvs"></canvas>
+          <div class="iter-bar-wrap">
+            <div class="iter-label"><span id="iter-label-l">Iteration 0 / 500</span><span id="iter-label-r">Press Play to begin</span></div>
+            <div class="iter-bar-bg"><div class="iter-bar-fill" id="iter-fill"></div></div>
+          </div>
+          <div class="perp-row">
+            <label>Perplexity:</label>
+            <input type="range" id="perp-slider" min="5" max="50" value="25" oninput="onPerpChange()">
+            <span id="perp-val">25</span>
+          </div>
+          <div class="ex-controls">
+            <button class="ctrl-btn primary" id="play-btn" onclick="toggleTSNE()">▶ Run t-SNE</button>
+            <button class="ctrl-btn" onclick="restartTSNE()">↺ Restart</button>
+            <button class="ctrl-btn" id="speed-btn" onclick="toggleSpeed()">1× speed</button>
+            <button class="ctrl-btn" id="compare-btn" onclick="toggleCompare()">Show PCA</button>
+          </div>
+        </div>
+        <div class="deriv-panel" id="deriv-panel">
+          <div class="dp-eyebrow" id="dp-eyebrow">AWAITING INPUT</div>
+          <div class="dp-title" id="dp-title">Run t-SNE to see live stats</div>
+          <div class="dp-formula" id="dp-formula">∂C/∂yᵢ = 4 Σⱼ (p_ij − q_ij)(yᵢ−yⱼ)(1+‖yᵢ−yⱼ‖²)⁻¹</div>
+          <div class="dp-body" id="dp-body">Select a dataset and press <strong>Run t-SNE</strong> to watch gradient descent animate live.<br><br>The panel will update in real-time with cost values, iteration count, and what each phase of the algorithm is doing.</div>
+          <div class="dp-status" id="dp-status">Status: Ready</div>
+          <div class="dp-numeric" id="dp-numeric">No data yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ QUIZ ═══ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="quiz-wrap reveal">
+      <div class="quiz-hd">
+        <span class="eyebrow">Test Yourself</span>
+        <h2>Quick Quiz</h2>
+        <p>Six questions on t-SNE. Pick your answer to see instant feedback.</p>
+      </div>
+      <div id="quiz-container"></div>
+      <button class="quiz-submit" id="quiz-sub" onclick="submitQuiz()">Submit Answers</button>
+      <div class="quiz-result" id="quiz-result">
+        <div class="score-big" id="score-num">0/6</div>
+        <div class="score-sub" id="score-lbl"></div>
+        <button class="quiz-submit" onclick="resetQuiz()">Try Again</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  <div style="margin-bottom:16px">
+    <a href="section-pca.html" style="color:var(--soft);text-decoration:none;margin-right:32px">← PCA</a>
+    <a href="dashboard.html" style="color:var(--soft);text-decoration:none;margin-right:32px">Dashboard</a>
+    <a href="section-umap.html" style="color:var(--accent);text-decoration:none">Next: UMAP →</a>
+  </div>
+  MANIFOLD · Section 03B · t-SNE
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   UTILITY
+════════════════════════════════════════════════════ */
+function seededRNG(seed){let s=seed>>>0;return()=>{s=Math.imul(1664525,s)+1013904223>>>0;return s/4294967296}}
+function randn(rng){const u=Math.max(rng(),1e-10),v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+const lerp=(a,b,t)=>a+(b-a)*t;
+const eio=t=>t<.5?2*t*t:-1+(4-2*t)*t;
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+function normalize(v){const n=Math.sqrt(v.reduce((s,x)=>s+x*x,0));return n<1e-12?v.map(()=>0):v.map(x=>x/n)}
+
+/* Viridis colormap — dark purple→blue→teal→green→yellow (ML standard for heatmaps) */
+function heatColor(v){
+  v=Math.max(0,Math.min(1,v));
+  const stops=[
+    [68,1,84],    // 0.00 dark purple
+    [59,82,139],  // 0.25 blue
+    [33,145,140], // 0.50 teal
+    [94,201,98],  // 0.75 green
+    [253,231,37], // 1.00 yellow
+  ];
+  const idx=v*(stops.length-1);
+  const lo=Math.floor(idx),hi=Math.min(lo+1,stops.length-1),t=idx-lo;
+  const r=Math.round(stops[lo][0]+t*(stops[hi][0]-stops[lo][0]));
+  const g=Math.round(stops[lo][1]+t*(stops[hi][1]-stops[lo][1]));
+  const b=Math.round(stops[lo][2]+t*(stops[hi][2]-stops[lo][2]));
+  return `rgb(${r},${g},${b})`;
+}
+function drawArrow(ctx,x1,y1,x2,y2,color,lw=2){
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy),angle=Math.atan2(dy,dx),hl=Math.min(12,len*.25);
+  if(len<2)return;
+  ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-hl*Math.cos(angle-.4),y2-hl*Math.sin(angle-.4));ctx.lineTo(x2-hl*Math.cos(angle+.4),y2-hl*Math.sin(angle+.4));ctx.closePath();ctx.fill();
+}
+
+/* ════════════════════════════════════════════════════
+   DATASETS
+════════════════════════════════════════════════════ */
+function genIris(){
+  const __s=MCore.irisSample(30);
+  const data=__s.data,labels=__s.labels;
+  return{name:'Iris Flowers',data,labels,colors:['#10b981','#00d4ff','#f59e0b'],cn:['Setosa','Versicolor','Virginica'],desc:'90 flowers · 3 species · 4 features · Should form 3 distinct clusters (real Fisher Iris)'};
+}
+function genMoons(){
+  const rng=seededRNG(456);
+  const data=[],labels=[];
+  for(let i=0;i<80;i++){
+    const lbl=i<40?0:1,angle=Math.PI*rng(),r=1+randn(rng)*0.12;
+    if(lbl===0)data.push([r*Math.cos(angle),r*Math.sin(angle),0,0]);
+    else data.push([1-r*Math.cos(angle),0.5-r*Math.sin(angle),0,0]);
+    labels.push(lbl);
+  }
+  return{name:'Two Moons',data,labels,colors:['#00d4ff','#f43f5e'],cn:['Upper Moon','Lower Moon'],desc:'80 points · 2 crescent shapes · PCA fails, t-SNE succeeds'};
+}
+function genBlobs(){
+  const rng=seededRNG(789);
+  const centers=[[4,1,2,0],[-2,4,-1,2],[0,-3,2,-1],[-4,-2,-3,1]];
+  const data=[],labels=[];
+  for(let c=0;c<4;c++) for(let i=0;i<25;i++){data.push(centers[c].map(m=>m+randn(rng)*0.7));labels.push(c);}
+  return{name:'Four Clusters',data,labels,colors:['#00d4ff','#f43f5e','#10b981','#f59e0b'],cn:['A','B','C','D'],desc:'100 points · 4 Gaussian clusters · 4D features'};
+}
+function genSwiss(){
+  const rng=seededRNG(321);
+  const data=[],labels=[];
+  for(let i=0;i<80;i++){
+    const t=1.5*Math.PI*(1+2*rng()),h=10*rng();
+    data.push([t*Math.cos(t),h,t*Math.sin(t),0]);
+    labels.push(Math.min(2,Math.floor(h/3.34)));
+  }
+  return{name:'Swiss Roll',data,labels,colors:['#10b981','#f59e0b','#f43f5e'],cn:['Low','Mid','High'],desc:'80 points · 3D roll · t-SNE unrolls structure PCA cannot'};
+}
+function genCircles(){
+  const rng=seededRNG(222);
+  const data=[],labels=[];
+  for(let i=0;i<80;i++){
+    const lbl=i<40?0:1,r=(lbl===0?1:2.8)+(randn(rng)*0.12),angle=2*Math.PI*rng();
+    data.push([r*Math.cos(angle),r*Math.sin(angle),0,0]);
+    labels.push(lbl);
+  }
+  return{name:'Concentric Circles',data,labels,colors:['#8b5cf6','#f59e0b'],cn:['Inner','Outer'],desc:'80 points · 2 concentric rings · Classic non-linear test'};
+}
+const DATASETS={iris:genIris(),moons:genMoons(),blobs:genBlobs(),swiss:genSwiss(),circles:genCircles()};
+
+/* ════════════════════════════════════════════════════
+   STEP CANVAS DRAW ROUTINES
+════════════════════════════════════════════════════ */
+
+/* Draws a proper numerical similarity matrix with subtle colour backing */
+function drawMatrixViz(ctx, S, x0, y0, availW, availH, title, n, animFrac){
+  const csz = Math.min(Math.floor((availW-20)/n), Math.floor((availH-22)/n), 30);
+  const mW = csz*n, mH = csz*n;
+  const mx = x0 + Math.floor((availW - mW)/2);
+  const my = y0 + 18;
+
+  // Title
+  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='bold 10px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.fillText(title, x0+availW/2, y0+2);
+
+  // Matrix brackets
+  ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1.5;
+  [[mx-3,my,mx-7,my,mx-7,my+mH,mx-3,my+mH],[mx+mW+3,my,mx+mW+7,my,mx+mW+7,my+mH,mx+mW+3,my+mH]].forEach(pts=>{
+    ctx.beginPath();ctx.moveTo(pts[0],pts[1]);ctx.lineTo(pts[2],pts[3]);ctx.lineTo(pts[4],pts[5]);ctx.lineTo(pts[6],pts[7]);ctx.stroke();
+  });
+
+  // Col headers
+  ctx.fillStyle='rgba(0,212,255,0.45)';ctx.font='6px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  for(let k=0;k<n;k++) ctx.fillText(k, mx+k*csz+csz/2, my-1);
+
+  // Row headers
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let k=0;k<n;k++) ctx.fillText(k, mx-9, my+k*csz+csz/2);
+
+  const total=n*n;
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+    const idx=i*n+j;
+    let alpha=1;
+    if(animFrac!==null){const p=clamp(animFrac*(total+n)-idx,0,1);if(p<=0)continue;alpha=p;}
+    ctx.globalAlpha=alpha;
+    const cx=mx+j*csz, cy=my+i*csz;
+    const v=Math.max(0,Math.min(1,S[i][j]));
+
+    // Cell background — subtle Viridis tint
+    ctx.fillStyle=heatColor(v);ctx.globalAlpha=alpha*0.22;
+    ctx.fillRect(cx,cy,csz-1,csz-1);
+
+    // Diagonal highlight
+    if(i===j){ctx.fillStyle='rgba(255,255,255,0.07)';ctx.globalAlpha=alpha;ctx.fillRect(cx,cy,csz-1,csz-1);}
+
+    // Value text
+    ctx.globalAlpha=alpha;
+    const txt=i===j?'—':(v<0.005?'.00':v.toFixed(2).slice(1)); // ".82" format saves space
+    const bright=0.4+v*0.6;
+    ctx.fillStyle=`rgba(255,255,255,${bright})`;
+    ctx.font=`${csz>22?8:6}px JetBrains Mono,monospace`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(txt,cx+csz/2,cy+csz/2);
+  }
+  ctx.globalAlpha=1;
+}
+
+// Step 1: similarity matrix
+const rngS=seededRNG(42),DEMO_PTS=[];
+for(let i=0;i<12;i++)DEMO_PTS.push([randn(rngS)*2+(i<6?-1.5:1.5),randn(rngS)*1.5+(i<6?1:-1)]);
+
+function gaussSim(pts,sigma=1.0){
+  const n=pts.length,S=[];
+  for(let i=0;i<n;i++){S[i]=[];for(let j=0;j<n;j++){const dx=pts[i][0]-pts[j][0],dy=pts[i][1]-pts[j][1];S[i][j]=i===j?0:Math.exp(-(dx*dx+dy*dy)/(2*sigma*sigma));}}
+  // row-normalise
+  for(let i=0;i<n;i++){const s=S[i].reduce((a,b)=>a+b,0)||1;for(let j=0;j<n;j++)S[i][j]/=s;}
+  return S;
+}
+
+function drawStep1(t){
+  const cvs=document.getElementById('cvs1');if(!cvs)return;
+  const ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  const et=eio(clamp(t,0,1));
+  const n=DEMO_PTS.length;
+  const sim=gaussSim(DEMO_PTS,1.4);
+
+  // Left: scatter
+  const lW=W*.42,pad=28;
+  const allX=DEMO_PTS.map(p=>p[0]),allY=DEMO_PTS.map(p=>p[1]);
+  const minX=Math.min(...allX)-0.5,maxX=Math.max(...allX)+0.5;
+  const minY=Math.min(...allY)-0.5,maxY=Math.max(...allY)+0.5;
+  const sx=x=>pad+(x-minX)/(maxX-minX)*(lW-2*pad);
+  const sy=y=>H-pad-(y-minY)/(maxY-minY)*(H-2*pad);
+
+  DEMO_PTS.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),5,0,Math.PI*2);
+    ctx.fillStyle=i<6?'#f43f5e99':'#8b5cf699';ctx.fill();
+    ctx.strokeStyle=i<6?'#f43f5e':'#8b5cf6';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(i,sx(p[0]),sy(p[1])-7);
+  });
+
+  // Right: similarity matrix (numerical values)
+  const hX=lW+14, availW=W-hX-8, availH=H-8;
+  const animFrac=et*(n*n+n)/(n*n); // animate cell reveal
+  drawMatrixViz(ctx,sim,hX,4,availW,availH,'p_{j|i}  Similarity Matrix',n,et<0.01?null:animFrac);
+
+  ctx.globalAlpha=1;
+  // Colorbar legend removed — numbers speak for themselves
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('Point cloud (2 groups)',lW/2,H-2);
+}
+
+function drawStep2(t){
+  const cvs=document.getElementById('cvs2');if(!cvs)return;
+  const ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  const et=eio(clamp(t,0,1));
+  const n=8;
+  const rng=seededRNG(10),pts=Array.from({length:n},()=>[randn(rng),randn(rng)]);
+  const simA=gaussSim(pts,1.2),simB=[];
+  // Symmetrised
+  for(let i=0;i<n;i++){simB[i]=[];for(let j=0;j<n;j++)simB[i][j]=(simA[i][j]+simA[j][i])/(2*n);}
+
+  const half=W/2-8;
+  function drawHeat(S,x0,title){
+    drawMatrixViz(ctx,S,x0,8,half,H-16,title,n,null);
+  }
+  drawHeat(simA,0,'p_{j|i} (asymmetric)');
+  // Arrow
+  ctx.globalAlpha=et;
+  ctx.fillStyle='#f59e0b';ctx.font='22px DM Sans,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('→',W/2,H/2-8);
+  ctx.font='10px JetBrains Mono,monospace';ctx.fillText('(p_{j|i}+p_{i|j})/2n',W/2,H/2+12);
+  drawHeat(simB,half+16,'p_{ij} (symmetric)');
+  ctx.globalAlpha=1;
+}
+
+function drawStep3(t){
+  const cvs=document.getElementById('cvs3');if(!cvs)return;
+  const ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  const et=eio(clamp(t,0,1));
+  const pl=48,pr=20,pt=36,pb=48,cW=W-pl-pr,cH=H-pt-pb;
+  const maxR=5;
+  const sx=r=>pl+(r/maxR)*cW;
+  const syG=v=>pt+cH-(v/1.1)*cH;
+  const syT=v=>pt+cH-(v/1.1)*cH;
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(pl,pt);ctx.lineTo(pl,H-pb);ctx.lineTo(W-pr,H-pb);ctx.stroke();
+  for(let v=0;v<=1;v+=0.2){
+    const y=pt+cH-v/1.1*cH;
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(W-pr,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v.toFixed(1),pl-4,y);
+  }
+  for(let r=0;r<=5;r++){
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(r,sx(r),H-pb+4);
+  }
+
+  // Gaussian
+  const steps=100;
+  ctx.globalAlpha=1;ctx.strokeStyle='#00d4ff';ctx.lineWidth=2.5;
+  ctx.setLineDash([]);ctx.beginPath();
+  for(let i=0;i<=steps;i++){const r=i/steps*maxR,v=Math.exp(-r*r/2);i===0?ctx.moveTo(sx(r),syG(v)):ctx.lineTo(sx(r),syG(v));}
+  ctx.stroke();
+  // Student-t
+  ctx.strokeStyle='#f43f5e';ctx.lineWidth=2.5;
+  ctx.globalAlpha=et;ctx.beginPath();
+  for(let i=0;i<=steps;i++){const r=i/steps*maxR,v=1/(1+r*r);i===0?ctx.moveTo(sx(r),syT(v)):ctx.lineTo(sx(r),syT(v));}
+  ctx.stroke();ctx.globalAlpha=1;
+
+  // Labels
+  ctx.fillStyle='#00d4ff';ctx.font='bold 12px DM Sans,sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText('Gaussian (used in high-D)',sx(0.3),syG(Math.exp(-0.3*0.3/2))-12);
+  if(et>.2){
+    ctx.globalAlpha=clamp((et-.2)/.5,0,1);
+    ctx.fillStyle='#f43f5e';ctx.fillText('Student-t (used in low-D)',sx(0.3),syT(1/(1+0.3*0.3))+18);
+    ctx.globalAlpha=1;
+  }
+  // Tail comparison annotation
+  if(et>.7){
+    ctx.globalAlpha=clamp((et-.7)/.3,0,1);
+    const r=3.5;
+    const yG=syG(Math.exp(-r*r/2)),yT=syT(1/(1+r*r));
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.setLineDash([3,4]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(sx(r),yG);ctx.lineTo(sx(r),yT);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='10px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('heavier tail →',sx(r)+28,(yG+yT)/2);
+    ctx.globalAlpha=1;
+  }
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('Distance r → | Similarity ↑ | Heavy tails allow clusters to breathe',W/2,H-2);
+}
+
+function drawStep4(t){
+  const cvs=document.getElementById('cvs4');if(!cvs)return;
+  const ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  const et=eio(clamp(t,0,1));
+  const pl=52,pr=20,pt=36,pb=48,cW=W-pl-pr,cH=H-pt-pb;
+  // KL divergence surface: C(q) = p*log(p/q) for various values of p
+  // Show curves for p=0.1, 0.3, 0.6
+  const ps=[0.08,0.25,0.55];
+  const cols=['#8b5cf6','#00d4ff','#f43f5e'];
+  const qMin=0.001,qMax=1;
+  const steps=120;
+  function kl(p,q){return p<=0?0:p*Math.log(p/Math.max(q,1e-9));}
+
+  const allVals=[];
+  ps.forEach(p=>{for(let i=0;i<=steps;i++){const q=qMin+i/steps*(qMax-qMin);allVals.push(kl(p,q));}});
+  const maxV=Math.min(Math.max(...allVals),1.5);
+
+  const sqx=q=>pl+(q-qMin)/(qMax-qMin)*cW;
+  const sqy=v=>pt+cH-clamp(v/maxV,0,1)*cH;
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(pl,pt);ctx.lineTo(pl,H-pb);ctx.lineTo(W-pr,H-pb);ctx.stroke();
+  [0,0.25,0.5,0.75,1].forEach(v=>{
+    const y=pt+cH-v/maxV*cH;if(y<pt)return;
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(W-pr,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(v.toFixed(2),pl-4,y);
+  });
+  [0,.2,.4,.6,.8,1].forEach(q=>{
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(q.toFixed(1),sqx(q),H-pb+4);
+  });
+
+  ps.forEach((p,pi)=>{
+    ctx.globalAlpha=clamp((et*(ps.length+1)-pi),0,1);
+    ctx.strokeStyle=cols[pi];ctx.lineWidth=2.5;ctx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const q=qMin+i/steps*(qMax-qMin),v=kl(p,q);
+      const y=sqy(v);if(y<pt||y>H-pb)continue;
+      i===0||y<pt?ctx.moveTo(sqx(q),clamp(y,pt,H-pb)):ctx.lineTo(sqx(q),clamp(y,pt,H-pb));
+    }
+    ctx.stroke();
+    // Min marker (at q=p, KL=0)
+    const mx=sqx(p),my=sqy(0);
+    ctx.beginPath();ctx.arc(mx,H-pb,5,0,Math.PI*2);ctx.fillStyle=cols[pi];ctx.fill();
+    ctx.fillStyle=cols[pi];ctx.font='10px JetBrains Mono,monospace';ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText(`p=${p}`,mx,H-pb-8);
+    ctx.globalAlpha=1;
+  });
+
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('q (low-D similarity) → | KL cost ↑ | Minimum at q=p (perfect match)',W/2,H-2);
+  ctx.textBaseline='top';
+  ctx.fillText('KL(p||q) — cost for each fixed value of p, as q varies',W/2,pt-24);
+}
+
+function drawStep5(t){
+  const cvs=document.getElementById('cvs5');if(!cvs)return;
+  const ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  const et=eio(clamp(t,0,1));
+
+  // Show 3 points with force arrows
+  const A={x:W*.35,y:H*.5},B={x:W*.65,y:H*.4},C={x:W*.5,y:H*.72};
+  const pts=[A,B,C];
+  const cols=['#f43f5e','#00d4ff','#10b981'];
+  const names=['y₁','y₂','y₃'];
+
+  // Draw connections
+  [[A,B,'p>q\n(attract)'],[A,C,'p<q\n(repel)'],[B,C,'p≈q\n(stable)']].forEach(([p1,p2,lbl],i)=>{
+    ctx.globalAlpha=et;
+    ctx.strokeStyle=lbl.includes('attract')?'#10b981':lbl.includes('repel')?'#f43f5e':'rgba(255,255,255,0.2)';
+    ctx.setLineDash(lbl.includes('stable')?[4,5]:[]);ctx.lineWidth=lbl.includes('stable')?1:2;
+    ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(lbl,(p1.x+p2.x)/2+8,(p1.y+p2.y)/2-10);
+    ctx.globalAlpha=1;
+  });
+
+  // Force arrows for each point
+  const forces=[
+    {x:0.8,y:-0.5,col:'#10b981',lbl:'attract to y₂'},
+    {x:-1.0,y:0.3,col:'#f43f5e',lbl:'repel from y₁'},
+    {x:0.2,y:-0.2,col:'#f59e0b',lbl:'net force'},
+  ];
+  pts.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(p.x,p.y,14,0,Math.PI*2);
+    ctx.fillStyle=cols[i]+'33';ctx.fill();
+    ctx.strokeStyle=cols[i];ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 12px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(names[i],p.x,p.y);
+  });
+
+  // Animate force arrows
+  if(et>.15){
+    const fa=clamp((et-.15)/.5,0,1);
+    const sc=40;
+    // y1 has a net attractive force toward y2
+    ctx.globalAlpha=fa;
+    drawArrow(ctx,A.x,A.y,A.x+(B.x-A.x)*.28*et,A.y+(B.y-A.y)*.28*et,'#10b981',3);
+    ctx.fillStyle='#10b981';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('attract (p>q)',A.x+16,A.y-20);
+    // y2 has repulsive from y3
+    drawArrow(ctx,C.x,C.y,C.x+(C.x-B.x)*.3*et,C.y+(C.y-B.y)*.3*et,'#f43f5e',3);
+    ctx.fillStyle='#f43f5e';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText('repel (p<q)',C.x-16,C.y+20);
+    ctx.globalAlpha=1;
+  }
+
+  // Update equation
+  ctx.globalAlpha=et;
+  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='11px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('yᵢ(t+1) = yᵢ(t) − η · ∂C/∂yᵢ + α · momentum',W/2,H-4);
+  ctx.globalAlpha=1;
+}
+
+function animStep(n){
+  const fns=[null,drawStep1,drawStep2,drawStep3,drawStep4,drawStep5];
+  const durs=[0,1800,2400,2000,1800,1800];
+  let start=null;
+  function frame(ts){
+    if(!start)start=ts;
+    const t=Math.min((ts-start)/durs[n],1);
+    fns[n](t);
+    if(t<1)requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ════════════════════════════════════════════════════
+   TSNE IMPLEMENTATION
+════════════════════════════════════════════════════ */
+function computePairwiseDist(data){
+  const n=data.length,d=data[0].length,D=[];
+  for(let i=0;i<n;i++){D[i]=new Float64Array(n);for(let j=0;j<n;j++){let s=0;for(let k=0;k<d;k++){const dx=data[i][k]-data[j][k];s+=dx*dx;}D[i][j]=s;}}
+  return D;
+}
+
+function computePerplexity(Di,beta){
+  const n=Di.length;let sumP=0,H=0;
+  const P=new Float64Array(n);
+  for(let j=0;j<n;j++){P[j]=Math.exp(-Di[j]*beta);}
+  for(let j=0;j<n;j++)sumP+=P[j];
+  if(sumP<1e-14)sumP=1e-14;
+  for(let j=0;j<n;j++){P[j]/=sumP;if(P[j]>1e-14)H-=P[j]*Math.log2(P[j]);}
+  return{H,P};
+}
+
+function computeP(data,perplexity=30){
+  const n=data.length,D=computePairwiseDist(data);
+  const P=[];
+  for(let i=0;i<n;i++)P.push(new Float64Array(n));
+  const targetH=Math.log2(perplexity);
+
+  for(let i=0;i<n;i++){
+    const Di=new Float64Array(n);
+    for(let j=0;j<n;j++)Di[j]=j===i?0:D[i][j];
+    let betaMin=-Infinity,betaMax=Infinity;
+    // scale-aware start: beta ~ 1 / mean squared distance, so unscaled data doesn't degenerate to one-hot rows
+    let msd=0,cnt=0;for(let j=0;j<n;j++){if(j!==i){msd+=D[i][j];cnt++;}}
+    let beta=cnt&&msd>0?cnt/msd:1;
+    let{H,P:Pi}=computePerplexity(Di,beta);
+    for(let iter=0;iter<100;iter++){
+      if(Math.abs(H-targetH)<1e-5)break;
+      if(H>targetH){betaMin=beta;beta=betaMax===Infinity?beta*2:(beta+betaMax)/2;}
+      else{betaMax=beta;beta=betaMin===-Infinity?beta/2:(beta+betaMin)/2;}
+      ({H,P:Pi}=computePerplexity(Di,beta));
+    }
+    for(let j=0;j<n;j++)P[i][j]=Pi[j];
+    P[i][i]=0;
+  }
+  // Symmetrise
+  const Psym=[];
+  for(let i=0;i<n;i++)Psym.push(new Float64Array(n));
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) Psym[i][j]=(P[i][j]+P[j][i])/(2*n);
+  // floor to avoid log(0) in the cost
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++) Psym[i][j]=Math.max(Psym[i][j],1e-12);
+  return Psym;
+}
+
+function tsneStep(Y,P,gains,vy,lr,momentum,exagg){
+  const n=Y.length;
+  // Compute Q
+  const num=[];for(let i=0;i<n;i++)num.push(new Float64Array(n));
+  let sumQ=0;
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    const dx=Y[i][0]-Y[j][0],dy=Y[i][1]-Y[j][1];
+    const v=1/(1+dx*dx+dy*dy);
+    num[i][j]=v;num[j][i]=v;sumQ+=2*v;
+  }
+  sumQ=Math.max(sumQ,1e-12);
+
+  // Gradient
+  let cost=0;
+  const grads=Array.from({length:n},()=>[0,0]);
+  for(let i=0;i<n;i++) for(let j=0;j<n;j++){
+    if(i===j)continue;
+    const pij=exagg*P[i][j],qij=num[i][j]/sumQ;
+    const p0=P[i][j];if(p0>1e-14&&qij>1e-14)cost+=p0*Math.log(p0/qij); // KL(P||Q) with the TRUE P, even while exaggerating
+    const f=4*(pij-qij)*num[i][j];
+    grads[i][0]+=f*(Y[i][0]-Y[j][0]);
+    grads[i][1]+=f*(Y[i][1]-Y[j][1]);
+  }
+
+  // Update with momentum + gains
+  for(let i=0;i<n;i++) for(let d2=0;d2<2;d2++){
+    const sign=Math.sign(grads[i][d2])!==Math.sign(vy[i][d2])?1:0;
+    gains[i][d2]=Math.max(sign?(gains[i][d2]+0.2):(gains[i][d2]*.8),.01);
+    vy[i][d2]=momentum*vy[i][d2]-lr*gains[i][d2]*grads[i][d2];
+    Y[i][d2]+=vy[i][d2];
+  }
+  // re-centre the embedding (standard; stops drift)
+  for(let d2=0;d2<2;d2++){let m=0;for(let i=0;i<n;i++)m+=Y[i][d2];m/=n;for(let i=0;i<n;i++)Y[i][d2]-=m;}
+  return cost;
+}
+
+// Explorer state
+let TSNE_STATE={running:false,iter:0,maxIter:500,Y:null,P:null,gains:null,vy:null,ds:null,rafId:null,cost:0,speed:1,showPCA:false,lastTs:null};
+let TSNE_PCA_PTS=null;
+let curDs='iris';
+
+function initTSNE(dsKey){
+  if(TSNE_STATE.rafId)cancelAnimationFrame(TSNE_STATE.rafId);
+  curDs=dsKey;
+  const ds=DATASETS[dsKey];
+  const perp=+document.getElementById('perp-slider').value;
+  document.getElementById('ds-info').textContent=`${ds.data.length} points · ${ds.data[0].length} features · Perplexity=${perp} · ${ds.desc}`;
+  document.querySelectorAll('.ds-btn').forEach(b=>b.classList.toggle('active',b.dataset.ds===dsKey));
+
+  // Compute P
+  const P=computeP(ds.data,perp);
+  const n=ds.data.length;
+
+  // Init Y randomly (small Gaussian)
+  const rng=seededRNG(42+n);
+  const Y=Array.from({length:n},()=>[randn(rng)*.1,randn(rng)*.1]);
+  const gains=Array.from({length:n},()=>[1,1]);
+  const vy=Array.from({length:n},()=>[0,0]);
+
+  // Compute PCA for comparison
+  TSNE_PCA_PTS=computePCA2D(ds.data);
+
+  TSNE_STATE={running:false,iter:0,maxIter:500,Y,P,gains,vy,ds,rafId:null,cost:0,speed:TSNE_STATE.speed||1,showPCA:false,lastTs:null};
+  document.getElementById('play-btn').textContent='▶ Run t-SNE';
+  document.getElementById('iter-fill').style.width='0%';
+  document.getElementById('iter-label-l').textContent='Iteration 0 / 500';
+  document.getElementById('iter-label-r').textContent='Ready';
+  drawTSNE(false);
+  updateDerivPanel();
+}
+
+// Simple PCA 2D for comparison
+function computePCA2D(data){return MCore.pca(data,2).projected;}
+
+function toggleTSNE(){
+  if(TSNE_STATE.iter>=TSNE_STATE.maxIter){restartTSNE();return;}
+  TSNE_STATE.running=!TSNE_STATE.running;
+  document.getElementById('play-btn').textContent=TSNE_STATE.running?'⏸ Pause':'▶ Continue';
+  if(TSNE_STATE.running){TSNE_STATE.lastTs=null;tsneLoop();}
+}
+function restartTSNE(){
+  TSNE_STATE.running=false;
+  if(TSNE_STATE.rafId)cancelAnimationFrame(TSNE_STATE.rafId);
+  initTSNE(curDs);
+}
+function toggleSpeed(){
+  const spds=[1,3,6],lbls=['1× speed','3× speed','6× speed'];
+  const idx=(spds.indexOf(TSNE_STATE.speed)+1)%3;
+  TSNE_STATE.speed=spds[idx];
+  document.getElementById('speed-btn').textContent=lbls[idx];
+}
+function toggleCompare(){
+  TSNE_STATE.showPCA=!TSNE_STATE.showPCA;
+  document.getElementById('compare-btn').textContent=TSNE_STATE.showPCA?'Hide PCA':'Show PCA';
+  if(!TSNE_STATE.running)drawTSNE(false);
+}
+function onPerpChange(){
+  const v=document.getElementById('perp-slider').value;
+  document.getElementById('perp-val').textContent=v;
+  if(!TSNE_STATE.running)initTSNE(curDs);
+}
+
+function tsneLoop(){
+  if(!TSNE_STATE.running)return;
+  const stepsPerFrame=TSNE_STATE.speed;
+  for(let s=0;s<stepsPerFrame&&TSNE_STATE.iter<TSNE_STATE.maxIter;s++){
+    const exagg=TSNE_STATE.iter<100?4:1;
+    const lr=200;
+    const momentum=TSNE_STATE.iter<20?0.5:0.8;
+    TSNE_STATE.cost=tsneStep(TSNE_STATE.Y,TSNE_STATE.P,TSNE_STATE.gains,TSNE_STATE.vy,lr,momentum,exagg);
+    TSNE_STATE.iter++;
+  }
+  drawTSNE(true);
+  updateDerivPanel();
+  const pct=TSNE_STATE.iter/TSNE_STATE.maxIter*100;
+  document.getElementById('iter-fill').style.width=pct+'%';
+  document.getElementById('iter-label-l').textContent=`Iteration ${TSNE_STATE.iter} / ${TSNE_STATE.maxIter}`;
+  document.getElementById('iter-label-r').textContent=TSNE_STATE.iter<100?'Phase: Early exaggeration':TSNE_STATE.iter<250?'Phase: Main optimisation':'Phase: Fine-tuning';
+
+  if(TSNE_STATE.iter>=TSNE_STATE.maxIter){
+    TSNE_STATE.running=false;document.getElementById('play-btn').textContent='▶ Run t-SNE';
+    document.getElementById('iter-label-r').textContent='✓ Complete';
+    return;
+  }
+  TSNE_STATE.rafId=requestAnimationFrame(tsneLoop);
+}
+
+function drawTSNE(running){
+  const cvs=document.getElementById('ex-cvs');if(!cvs||!TSNE_STATE.Y)return;
+  const ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
+  const pts=TSNE_STATE.showPCA&&TSNE_PCA_PTS?TSNE_PCA_PTS:TSNE_STATE.Y;
+  const ds=TSNE_STATE.ds;
+  const n=pts.length;
+  const allX=pts.map(p=>p[0]),allY=pts.map(p=>p[1]);
+  let minX=Math.min(...allX),maxX=Math.max(...allX),minY=Math.min(...allY),maxY=Math.max(...allY);
+  const rx=(maxX-minX)*.12||1,ry=(maxY-minY)*.12||1;
+  minX-=rx;maxX+=rx;minY-=ry;maxY+=ry;
+  const pl=52,pr=90,pt2=44,pb2=46,cW=W-pl-pr,cH=H-pt2-pb2;
+  const sx=x=>pl+(x-minX)/(maxX-minX)*cW;
+  const sy=y=>H-pb2-(y-minY)/(maxY-minY)*cH;
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let i=0;i<=5;i++){
+    ctx.beginPath();ctx.moveTo(pl+i/5*cW,pt2);ctx.lineTo(pl+i/5*cW,H-pb2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pl,pt2+i/5*cH);ctx.lineTo(W-pr,pt2+i/5*cH);ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.strokeRect(pl,pt2,cW,cH);
+
+  // Points
+  pts.forEach((p,i)=>{
+    const col=ds.colors[ds.labels[i]]||'#00d4ff';
+    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),5,0,Math.PI*2);
+    ctx.fillStyle=col+'cc';ctx.fill();
+    ctx.strokeStyle=col+'88';ctx.lineWidth=0.8;ctx.stroke();
+  });
+
+  // Legend
+  const uniq=[...new Set(ds.labels)];
+  uniq.forEach((cls,i)=>{
+    const lx=W-pr+12,ly=pt2+16+i*22;
+    ctx.beginPath();ctx.arc(lx+5,ly,5,0,Math.PI*2);
+    ctx.fillStyle=ds.colors[cls]||'#00d4ff';ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='11px DM Sans,sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(ds.cn[cls]||`C${cls}`,lx+14,ly);
+  });
+
+  // Title
+  const title=TSNE_STATE.showPCA?`PCA Projection — ${ds.name}`:TSNE_STATE.iter===0?`Random Init — ${ds.name}`:TSNE_STATE.iter<TSNE_STATE.maxIter?`t-SNE Optimising — ${ds.name}`:`t-SNE Result — ${ds.name}`;
+  ctx.fillStyle='rgba(255,255,255,0.72)';ctx.font='bold 13px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText(title,pl+cW/2,pt2-8);
+  // Mode badge
+  const badge=TSNE_STATE.showPCA?'PCA (linear)':'t-SNE (non-linear)';
+  const badgeCol=TSNE_STATE.showPCA?'#00d4ff':'#f43f5e';
+  ctx.fillStyle=badgeCol+'22';
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(pl,pt2-36,cW,22,5):ctx.rect(pl,pt2-36,cW,22);ctx.fill();
+  ctx.fillStyle=badgeCol;ctx.font='11px JetBrains Mono,monospace';ctx.textBaseline='middle';
+  ctx.fillText(badge,pl+cW/2,pt2-25);
+}
+
+function updateDerivPanel(){
+  const s=TSNE_STATE;
+  if(!s.ds)return;
+  const iter=s.iter,phase=iter<100?'Early Exaggeration':iter<250?'Main Optimisation':'Fine-tuning';
+  const perp=document.getElementById('perp-slider').value;
+  document.getElementById('dp-eyebrow').textContent=`ITERATION ${iter} — ${phase.toUpperCase()}`;
+  document.getElementById('dp-title').textContent=iter===0?'Awaiting run...':iter<s.maxIter?`Gradient Descent Running`:'Optimisation Complete ✓';
+  document.getElementById('dp-formula').textContent='∂C/∂yᵢ = 4 Σⱼ (p_ij − q_ij)(yᵢ−yⱼ)(1+‖yᵢ−yⱼ‖²)⁻¹';
+  const exagg=iter<100?4:1;
+  const momentum=iter<20?0.5:0.8;
+  document.getElementById('dp-body').innerHTML=`<strong>Dataset:</strong> ${s.ds.name} (${s.ds.data.length} pts)<br><strong>Perplexity:</strong> ${perp}<br><strong>Phase:</strong> ${phase}<br><strong>Early exaggeration:</strong> ${exagg}×<br><strong>Momentum:</strong> ${momentum}<br><br>${iter<100?'<strong>Early exaggeration</strong> multiplies P by 4 — pushing clusters far apart so they find their natural positions quickly.':iter<250?'Now running at <strong>full scale</strong>: attraction and repulsion balance to form the final layout.':'Fine-tuning: small refinements to local structure.'}`;
+  document.getElementById('dp-status').textContent=`Status: ${s.running?'Running...':iter===0?'Ready':iter>=s.maxIter?'Complete':'Paused at iteration '+iter}`;
+
+  if(iter>0){
+    const n=s.Y.length;
+    let centX=0,centY=0;s.Y.forEach(p=>{centX+=p[0]/n;centY+=p[1]/n;});
+    let spread=0;s.Y.forEach(p=>{const dx=p[0]-centX,dy=p[1]-centY;spread+=Math.sqrt(dx*dx+dy*dy)/n;});
+    document.getElementById('dp-numeric').textContent=`KL cost:  ${s.cost.toFixed(4)}\nIteration: ${iter} / ${s.maxIter}\nPoints:   ${n}\nSpread:   ${spread.toFixed(3)} (avg dist from centre)\nPhase:    ${phase}\nExagg:    ${exagg}×\nLr:       200\nMomentum: ${momentum}`;
+  }else{
+    document.getElementById('dp-numeric').textContent='Run the algorithm to see live statistics.';
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   QUIZ
+════════════════════════════════════════════════════ */
+const QUIZ=[
+  {q:"What does the perplexity parameter in t-SNE control?",opts:["The number of output dimensions (e.g. 2D vs 3D)","The effective number of neighbours each point considers","The learning rate of the gradient descent","The number of iterations to run"],ans:1,exp:"Perplexity (typically 5–50) controls the scale of local neighbourhood. A value of 30 means each point effectively considers about 30 neighbours when computing its similarity distribution. Higher perplexity considers broader neighbourhoods."},
+  {q:"Why does t-SNE use a Student t-distribution in the low-dimensional space instead of a Gaussian?",opts:["It's faster to compute than a Gaussian","It prevents numerical overflow in high dimensions","Its heavier tails allow dissimilar points to be placed far apart without over-penalising","It guarantees that KL divergence is always zero at the optimum"],ans:2,exp:"The Student t-distribution has heavier tails than a Gaussian. This means a moderate distance in 2D can represent a large distance in high-D without the similarity q_ij collapsing to zero. This prevents the 'crowding problem' where everything collapses into a central blob."},
+  {q:"t-SNE minimises KL(P ‖ Q). What does a small KL divergence mean here?",opts:["The high-D data has low variance","The 2D layout's local neighbourhoods match the high-D neighbourhoods","All clusters are the same size","The gradient is zero and training has failed"],ans:1,exp:"KL(P‖Q) measures how well the low-D distribution Q matches the high-D distribution P. A small value means similar points in high-D are also close in 2D, and dissimilar points are appropriately far apart — the neighbourhood structure is preserved."},
+  {q:"What is 'early exaggeration' in t-SNE and why is it used?",opts:["Shrinking the learning rate in early iterations to avoid divergence","Multiplying P by a large factor early on so clusters form and separate quickly","Adding random noise to Y in the first 100 iterations","Starting with a very large perplexity and reducing it"],ans:1,exp:"Early exaggeration (typically 4× for iterations 1–100) scales up all p_ij values temporarily. This forces the attractive forces to dominate heavily at first, pushing similar clusters together and giving them room to find their natural positions before fine-tuning begins."},
+  {q:"A colleague says 'Cluster A is twice as far from Cluster B as from Cluster C in the t-SNE plot, so it must be twice as different'. What is wrong?",opts:["Nothing — inter-cluster distances in t-SNE are perfectly meaningful","t-SNE only preserves local neighbourhood structure, not global distances between clusters","The plot should be run for more iterations first","t-SNE distances are only meaningful in 3D, not 2D"],ans:1,exp:"This is a fundamental t-SNE limitation. The algorithm optimises local (within-neighbourhood) distances, not global inter-cluster distances. The relative positions and distances between clusters in a t-SNE plot are not reliable — only the local groupings within clusters are trustworthy."},
+  {q:"You run t-SNE twice on the same dataset with the same perplexity. The two plots look very different. What happened?",opts:["A bug in the software — t-SNE should always give identical results","t-SNE is non-deterministic: random initialisation leads to different local optima","The perplexity value must be different between runs","The dataset must have changed between runs"],ans:1,exp:"t-SNE is non-deterministic. The random initialisation of Y and the stochastic nature of gradient descent lead to different local optima. Both runs may correctly preserve local structure — they just arrange the global layout differently. Always run t-SNE multiple times and look for consistent local clusters."}
+];
+const userAns={};
+function renderQuiz(){
+  document.getElementById('quiz-container').innerHTML=QUIZ.map((q,i)=>`
+    <div class="quiz-q" id="qq${i}">
+      <div class="q-num">Question ${i+1} of ${QUIZ.length}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="opts">${q.opts.map((o,j)=>`<button class="opt-btn" id="qq${i}o${j}" onclick="selOpt(${i},${j})">${String.fromCharCode(65+j)}. ${o}</button>`).join('')}</div>
+      <div class="feedback" id="fb${i}"></div>
+    </div>`).join('');
+}
+function selOpt(qi,oi){
+  if(userAns[qi]!==undefined)return;
+  QUIZ[qi].opts.forEach((_,j)=>document.getElementById(`qq${qi}o${j}`)?.classList.remove('selected'));
+  document.getElementById(`qq${qi}o${oi}`)?.classList.add('selected');
+  userAns[qi]=oi;
+}
+function submitQuiz(){
+  if(Object.keys(userAns).length<QUIZ.length){alert('Please answer all 6 questions!');return;}
+  let score=0;
+  QUIZ.forEach((q,i)=>{
+    const ua=userAns[i];
+    if(ua===q.ans)score++;
+    document.getElementById(`qq${i}o${q.ans}`)?.classList.add('correct-ans');
+    if(ua!==q.ans)document.getElementById(`qq${i}o${ua}`)?.classList.add('wrong-ans');
+    q.opts.forEach((_,j)=>{const b=document.getElementById(`qq${i}o${j}`);if(b)b.disabled=true;});
+    document.getElementById(`qq${i}`)?.classList.add(ua===q.ans?'correct':'incorrect');
+    const fb=document.getElementById(`fb${i}`);
+    if(fb){fb.textContent=(ua===q.ans?'✓ ':'✗ ')+q.exp;fb.className='feedback '+(ua===q.ans?'show-c':'show-w');}
+  });
+  document.getElementById('quiz-sub').style.display='none';
+  document.getElementById('quiz-result').style.display='block';
+  document.getElementById('score-num').textContent=`${score}/${QUIZ.length}`;
+  const lbls=['Keep reviewing!','Keep studying!','Good start!','Getting there!','Great work!','Excellent!','Perfect! 🎉'];
+  document.getElementById('score-lbl').textContent=lbls[score];
+}
+function resetQuiz(){
+  Object.keys(userAns).forEach(k=>delete userAns[k]);
+  document.getElementById('quiz-result').style.display='none';
+  document.getElementById('quiz-sub').style.display='block';
+  renderQuiz();
+}
+
+/* ════════════════════════════════════════════════════
+   HERO CANVAS
+════════════════════════════════════════════════════ */
+function initHero(){
+  const cvs=document.getElementById('hero-cvs');
+  const resize=()=>{cvs.width=window.innerWidth;cvs.height=window.innerHeight};
+  resize();window.addEventListener('resize',resize);
+  const ctx=cvs.getContext('2d');
+  const N=120,groups=3;
+  const rng=seededRNG(77);
+  const pts=Array.from({length:N},(_,i)=>{
+    const g=i%groups,angle=2*Math.PI*rng(),r=(g+1)*80+randn(rng)*30;
+    return{x:0,y:0,tx:Math.cos(angle)*r,ty:Math.sin(angle)*r,
+           vx:(rng()-.5)*.3,vy:(rng()-.5)*.3,
+           r:rng()*1.5+.5,a:rng()*.3+.06,g};
+  });
+  const cols=['#f43f5e','#8b5cf6','#f59e0b'];
+  let off=0;
+  function frame(){
+    off++;
+    ctx.fillStyle='rgba(6,11,26,0.14)';ctx.fillRect(0,0,cvs.width,cvs.height);
+    const cx=cvs.width/2,cy=cvs.height/2;
+    for(const p of pts){
+      p.x+=p.vx;p.y+=p.vy;
+      if(Math.abs(p.x)>cvs.width*.7)p.vx*=-1;
+      if(Math.abs(p.y)>cvs.height*.7)p.vy*=-1;
+      ctx.beginPath();ctx.arc(cx+p.x,cy+p.y,p.r,0,Math.PI*2);
+      const alpha=Math.round(p.a*255).toString(16).padStart(2,'0');
+      ctx.fillStyle=cols[p.g%3]+alpha;
+      ctx.fill();
+    }
+    for(let i=0;i<N;i++) for(let j=i+1;j<N;j++){
+      if(pts[i].g!==pts[j].g)continue;
+      const dx=(cx+pts[i].x)-(cx+pts[j].x),dy=(cy+pts[i].y)-(cy+pts[j].y);
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<90){
+        ctx.beginPath();ctx.moveTo(cx+pts[i].x,cy+pts[i].y);ctx.lineTo(cx+pts[j].x,cy+pts[j].y);
+        ctx.strokeStyle=cols[pts[i].g%3]+Math.round((1-d/90)*.12*255).toString(16).padStart(2,'0');
+        ctx.lineWidth=.7;ctx.stroke();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* ════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════ */
+window.addEventListener('load',()=>{
+  initHero();
+
+  [1,2,3,4,5].forEach(n=>{const c=document.getElementById(`cvs${n}`);if(c){c.width=600;c.height=390;}});
+  drawStep1(0);drawStep2(0);drawStep3(0);drawStep4(0);drawStep5(0);
+
+  const ec=document.getElementById('ex-cvs');if(ec){ec.width=680;ec.height=420;}
+  initTSNE('iris');
+
+  document.getElementById('ds-picker')?.addEventListener('click',e=>{
+    const btn=e.target.closest('.ds-btn');
+    if(btn&&btn.dataset.ds)initTSNE(btn.dataset.ds);
+  });
+
+  // Auto-animate steps on scroll
+  const seen=new Set();
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting&&!seen.has(e.target.id)){
+        seen.add(e.target.id);
+        const n=+e.target.id.replace('cvs','');
+        if(n>=1&&n<=5)setTimeout(()=>animStep(n),350);
+      }
+    });
+  },{threshold:.6});
+  [1,2,3,4,5].forEach(n=>{const c=document.getElementById(`cvs${n}`);if(c)obs.observe(c);});
+
+  const revObs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>revObs.observe(el));
+
+  window.addEventListener('scroll',()=>{
+    const s=window.scrollY,tot=document.body.scrollHeight-window.innerHeight;
+    document.getElementById('prog').style.width=(s/tot*100)+'%';
+  });
+
+  renderQuiz();
+});
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>

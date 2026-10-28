@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manifold</title>
+<noscript><meta http-equiv="refresh" content="0; url=login.html"></noscript>
+<script>
+// Entry point for static hosting (Cloudflare Pages / GitHub Pages): go to the dashboard when signed in, else to login.
+try { location.replace(sessionStorage.getItem('manifold_user') ? 'dashboard.html' : 'login.html'); } catch (e) { location.replace('login.html'); }
+</script></head>
+<body style="background:#04091a;color:#8aaac8;font-family:system-ui;padding:2rem">Loading Manifold… <a href="login.html" style="color:#00d4ff">continue</a></body></html>

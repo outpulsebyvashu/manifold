@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manifold — Dimensionality Reduction Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#04091a;--card-bg:rgba(255,255,255,0.034);
+  --border:rgba(255,255,255,0.08);
+  --accent:#00d4ff;--accent-glow:rgba(0,212,255,0.22);
+  --text:#e8f4ff;--muted:#6b8aaa;--rose:#f43f5e;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.blob{position:fixed;border-radius:50%;filter:blur(110px);opacity:0.07;pointer-events:none;z-index:0;}
+.blob-1{width:560px;height:560px;background:#00d4ff;top:-180px;right:-180px;}
+.blob-2{width:480px;height:480px;background:#6d28d9;bottom:-160px;left:-160px;}
+.blob-3{width:300px;height:300px;background:#00d4ff;bottom:10%;right:10%;opacity:0.035;}
+
+.wrap{position:relative;z-index:1;width:100%;max-width:420px;padding:0 20px;animation:rise .85s cubic-bezier(.16,1,.3,1) both;}
+@keyframes rise{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
+
+/* Brand */
+.brand{text-align:center;margin-bottom:36px;}
+.logo-mark{display:inline-flex;align-items:center;gap:5px;margin-bottom:12px;}
+.dim-dots{display:flex;gap:4px;align-items:flex-end;}
+.dim-dots span{display:block;width:5px;border-radius:2px;background:var(--accent);animation:bar 2.4s ease-in-out infinite;}
+.dim-dots span:nth-child(1){height:8px;animation-delay:0s;}
+.dim-dots span:nth-child(2){height:14px;animation-delay:.15s;}
+.dim-dots span:nth-child(3){height:20px;animation-delay:.3s;}
+.dim-dots span:nth-child(4){height:14px;animation-delay:.45s;}
+.dim-dots span:nth-child(5){height:6px;animation-delay:.6s;}
+@keyframes bar{0%,100%{opacity:.4;transform:scaleY(.7);}50%{opacity:1;transform:scaleY(1);}}
+.app-name{font-family:'Syne',sans-serif;font-size:44px;font-weight:800;letter-spacing:-1.5px;background:linear-gradient(130deg,#fff 0%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.app-sub{font-size:11px;letter-spacing:2.8px;text-transform:uppercase;color:var(--muted);font-weight:400;margin-top:4px;}
+
+/* Card */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:22px;padding:38px 34px 32px;backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.35),transparent);}
+.card-title{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;letter-spacing:-.3px;margin-bottom:5px;}
+.card-desc{font-size:13px;color:var(--muted);margin-bottom:28px;}
+
+/* Sign-in state */
+.state{display:none;flex-direction:column;align-items:center;gap:14px;}
+.state.active{display:flex;}
+#g_id_signin{display:flex;justify-content:center;}
+.pw-tabs{display:flex;gap:6px;width:100%;margin-bottom:4px}
+.pw-tabs button{flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.pw-tabs button.on{background:rgba(0,212,255,.12);border-color:rgba(0,212,255,.45);color:var(--accent)}
+#pw-form{display:flex;flex-direction:column;gap:10px;width:100%}
+#pw-form input{height:46px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);padding:0 14px;font:inherit;font-size:16px;outline:none;width:100%}
+#pw-form input:focus{border-color:var(--accent)}
+#pw-submit{height:46px;border-radius:10px;border:0;background:linear-gradient(135deg,#00d4ff,#10b981);color:#04091a;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+#pw-submit:disabled{opacity:.6;cursor:wait}
+#pw-msg{min-height:18px;font-size:12px;color:var(--rose);line-height:1.5}
+#pw-note{font-size:11px;color:var(--muted);line-height:1.6}
+body.light #pw-form input{background:rgba(0,0,0,.03)}
+.divider{display:flex;align-items:center;gap:10px;width:100%;margin-top:4px;}
+.divider-line{flex:1;height:1px;background:rgba(255,255,255,.06);}
+.divider-txt{font-size:11px;color:var(--muted);white-space:nowrap;}
+
+/* Loading state */
+.spinner{width:32px;height:32px;border:2px solid rgba(0,212,255,.15);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{font-size:13px;color:var(--muted);}
+
+/* Denied state */
+.denied-icon{width:52px;height:52px;border-radius:50%;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);display:flex;align-items:center;justify-content:center;font-size:24px;}
+.denied-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--rose);}
+.denied-email{font-size:12px;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:6px 16px;font-family:'JetBrains Mono',monospace,monospace;}
+.denied-sub{font-size:12px;color:var(--muted);line-height:1.75;text-align:center;max-width:290px;}
+.try-again-btn{background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);padding:8px 22px;border-radius:9px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;margin-top:4px;}
+.try-again-btn:hover{border-color:rgba(255,255,255,.22);color:var(--text);}
+
+/* Note */
+.note{margin-top:22px;padding:12px 16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:10px;font-size:12px;color:rgba(107,138,170,.5);text-align:center;line-height:1.7;}
+
+.footer{text-align:center;margin-top:28px;font-size:11px;color:rgba(107,138,170,.28);letter-spacing:.3px;}
+
+/* ── Login light mode ── */
+body.light{--bg:#f0f4ff;--card-bg:rgba(255,255,255,0.88);--border:rgba(0,0,0,0.08);--text:#0f1b2d;--muted:#5a7080;}
+body.light .card{background:var(--card-bg);border-color:rgba(0,0,0,0.1);}
+body.light .blob{opacity:0.03 !important;}
+body.light canvas{opacity:0.05 !important;}
+body.light .note{background:rgba(0,0,0,0.03);border-color:rgba(0,0,0,0.06);}
+body.light .divider-line{background:rgba(0,0,0,0.07);}
+/* Fixed theme button for login (no nav bar) */
+.theme-btn-fixed{position:fixed;top:18px;right:22px;z-index:200;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);width:34px;height:34px;border-radius:10px;font-size:17px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+.theme-btn-fixed:hover{background:rgba(255,255,255,0.12);color:var(--text);}
+body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);}
+
+</style>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<style id="login-theme">
+/* login: same design language (lime brand card, white form card, Outfit) */
+body{align-items:flex-start!important;overflow:auto!important;padding:20px 0 40px;font-family:var(--font)!important}
+body.light canvas#bg,body.light .blob,canvas#bg{display:none!important}
+.wrap{max-width:440px;padding:0 14px}
+.brand{background:var(--lime);border-radius:32px;padding:30px 18px 26px;margin-bottom:12px}
+body:not(.light) .brand{background:var(--card)}
+.app-name{font-family:var(--font)!important;font-size:clamp(36px,11vw,52px)!important;font-weight:300!important;letter-spacing:-.045em!important;background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--forest)!important}
+body:not(.light) .app-name{color:var(--text)!important}
+.app-sub{color:rgba(15,59,31,.72)!important;letter-spacing:.16em!important;font-size:10.5px!important}
+body:not(.light) .app-sub{color:var(--muted)!important}
+.dim-dots span{background:var(--forest)!important}
+body:not(.light) .dim-dots span{background:var(--lime)!important}
+.card{background:var(--card)!important;border:0!important;border-radius:28px!important;padding:22px 18px 20px!important;backdrop-filter:none!important}
+.card::before{display:none!important}
+.card-title{font-family:var(--font)!important;font-weight:500!important;letter-spacing:-.02em!important;font-size:22px!important;color:var(--text)!important}
+.card-desc{color:var(--muted)!important}
+.note{background:var(--chip)!important;border:0!important;border-radius:18px!important;color:var(--muted)!important}
+.footer,.footer a,.divider-txt,.loading-msg,.denied-sub,#pw-note{color:var(--muted)!important}
+.divider-line{background:var(--border)!important}
+.spinner{border-color:rgba(15,59,31,.15)!important;border-top-color:var(--forest)!important}
+.denied-title{color:var(--rose)!important}
+.denied-email{background:var(--chip)!important;border:0!important;color:var(--text)!important}
+.try-again-btn{background:var(--chip)!important;border:0!important;color:var(--text)!important;border-radius:999px!important}
+.pw-tabs button{border:0!important;background:var(--chip)!important;color:var(--text)!important;border-radius:999px!important}
+.pw-tabs button.on{background:var(--lime)!important;color:var(--forest)!important}
+#pw-form input{background:var(--chip)!important;border:0!important;border-radius:14px!important;color:var(--text)!important}
+#pw-form input:focus{outline:2px solid var(--forest)}
+body:not(.light) #pw-form input:focus{outline-color:var(--lime)}
+#pw-submit{background:var(--forest)!important;color:#fff!important;border-radius:999px!important;font-weight:500}
+body:not(.light) #pw-submit{background:var(--lime)!important;color:var(--forest)!important}
+.theme-btn-fixed{background:var(--card)!important;border:0!important;color:var(--text)!important;border-radius:50%!important;width:44px!important;height:44px!important;top:14px!important;right:14px!important}
+</style>
+<body>
+<canvas id="bg"></canvas>
+<button class="theme-btn-fixed" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<div class="wrap">
+  <div class="brand">
+    <div class="logo-mark">
+      <div class="dim-dots"><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="app-name">MANIFOLD</div>
+    <div class="app-sub">Dimensionality Reduction &middot; Learning Platform</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Welcome</div>
+    <div class="card-desc">Sign in or create an account to access the platform</div>
+
+    <!-- State 1: Sign-in button -->
+    <div class="state active" id="state-signin">
+      <div class="pw-tabs" role="tablist">
+        <button type="button" id="tab-in" class="on" role="tab" aria-selected="true">Sign in</button>
+        <button type="button" id="tab-up" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="pw-form" autocomplete="on" novalidate>
+        <input id="pw-name" type="text" placeholder="Your name" autocomplete="name" style="display:none" maxlength="80">
+        <input id="pw-id" type="text" placeholder="Email or username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64">
+        <input id="pw-pass" type="password" placeholder="Password" autocomplete="current-password" maxlength="128">
+        <input id="pw-pass2" type="password" placeholder="Repeat password" autocomplete="new-password" style="display:none" maxlength="128">
+        <button type="submit" id="pw-submit">Sign in</button>
+        <div id="pw-msg" role="alert"></div>
+        <div id="pw-note"></div>
+      </form>
+      <div class="divider">
+        <div class="divider-line"></div>
+        <div class="divider-txt">or continue with Google</div>
+        <div class="divider-line"></div>
+      </div>
+      <div id="g_id_signin"></div>
+    </div>
+
+    <!-- State 2: Verifying -->
+    <div class="state" id="state-loading">
+      <div class="spinner"></div>
+      <div class="loading-msg" id="loading-msg">Verifying your account&hellip;</div>
+    </div>
+
+    <!-- State 3: Access denied (kept for future use) -->
+    <div class="state" id="state-denied">
+      <div class="denied-icon">&#128683;</div>
+      <div class="denied-title">Sign-in Failed</div>
+      <div class="denied-email" id="denied-email-txt"></div>
+      <div class="denied-sub">Something went wrong. Please try again.</div>
+      <button class="try-again-btn" onclick="resetToSignIn()">&#8592; Try again</button>
+    </div>
+
+    <div class="note" id="bottom-note">
+      Sign in with a username and password, or with any Google account.<br>
+      <span style="opacity:.8">On your first sign-in we record your name and email in a login log and send you one welcome email. No other data is collected.</span>
+    </div>
+  </div>
+
+  <div class="footer">MANIFOLD &middot; Interactive Learning Platform</div>
+  <div style="text-align:center;margin-top:10px;font-size:11px;color:rgba(107,138,170,0.35);">
+    Contact &nbsp;&middot;&nbsp; <a href="mailto:shrawanvedshree@gmail.com" style="color:rgba(107,138,170,0.5);text-decoration:none;">shrawanvedshree@gmail.com</a>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════════════ */
+var CLIENT_ID = '605465001206-caj9d5peigu55pdpc73biea0an7b9aea.apps.googleusercontent.com';
+
+/* Owner email — always gets 'owner' role, everyone else gets 'student' */
+
+/* ── EmailJS — welcome email on every login ── */
+var EMAILJS_SERVICE_ID  = 'service_sml1v8u';
+var EMAILJS_TEMPLATE_ID = 'pj62p2p';
+var EMAILJS_PUBLIC_KEY  = 'IqA78fumCkEX7Pw6f';
+
+/* ── Google Form login tracker ──────────────────────────────────
+   HOW TO SET UP (one time, 3 minutes):
+   1. Go to forms.google.com → New blank form → name it "Manifold Logins"
+   2. Add 3 Short answer questions: "Email", "Name", "Time"
+   3. Click ⋮ (top right) → "Get pre-filled link"
+   4. Fill dummy text in all 3 fields → click "Get link" → copy URL
+   5. From the URL copy the entry IDs:
+        ...entry.1234567890=dummy... → FORM_ENTRY_EMAIL  = 'entry.1234567890'
+   6. Paste your form's /formResponse URL as FORM_URL
+   7. In the form, click Responses tab → green Sheets icon → create sheet
+      Then in Sheets: Tools → Notification rules → Any response → Email immediately
+   Replace the placeholders below:
+─────────────────────────────────────────────────────────────── */
+var FORM_URL          = 'https://docs.google.com/forms/d/e/1FAIpQLSdjGUCugRW-RTR83nLpZ4LY-R_yg2yOqqZISpZ-F7Jf8kTpZQ/formResponse';
+var FORM_ENTRY_ACTION = 'entry.1109299741';   // Action — we send "Login"
+var FORM_ENTRY_EMAIL  = 'entry.1910573540';   // Email
+var FORM_ENTRY_NAME   = 'entry.1366821300';   // Name
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* ── Animated particle background ── */
+var canvas=document.getElementById('bg'),ctx=canvas.getContext('2d'),W,H,pts;
+function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+function mkPts(){pts=Array.from({length:130},function(){return{x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+0.3,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,a:Math.random()*.45+.08};});}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  for(var i=0;i<pts.length;i++)for(var j=i+1;j<pts.length;j++){var dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<110){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle='rgba(0,212,255,'+(0.055*(1-d/110))+')';ctx.lineWidth=.5;ctx.stroke();}}
+  pts.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle='rgba(0,212,255,'+p.a+')';ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;});
+  requestAnimationFrame(draw);
+}
+resize();mkPts();draw();
+window.addEventListener('resize',function(){resize();mkPts();});
+
+/* ── State helpers ── */
+function showState(s){
+  ['signin','loading','denied'].forEach(function(id){
+    var el=document.getElementById('state-'+id);
+    el.classList.toggle('active',id===s);
+  });
+  document.getElementById('bottom-note').style.display=s==='denied'?'none':'block';
+}
+
+/* ── Google Identity Services ── */
+function initGoogle(){
+  if(typeof google==='undefined'||!google.accounts){setTimeout(initGoogle,150);return;}
+  google.accounts.id.initialize({
+    client_id:CLIENT_ID,
+    callback:handleGoogleToken,
+    auto_select:false,
+    cancel_on_tap_outside:true,
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('g_id_signin'),
+    {theme:'outline',size:'large',width:300,shape:'pill',text:'signin_with',logo_alignment:'left'}
+  );
+}
+
+/* ── Called after user picks a Google account ── */
+function denied(msg){
+  document.getElementById('denied-email-txt').textContent = msg || 'Sign-in failed';
+  showState('denied');
+}
+
+// Shared finish step once we know who the user is (from the server, or the static fallback)
+function finishSignIn(u, noNotify){
+  var email = u.email, name = u.name, role = u.role;
+  // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
+  // (Google sign-ins only: their email is verified. Password accounts never trigger emails — the address is not verified.)
+  var seen = {};
+  try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
+  if(!noNotify && !seen[email]){
+    notifyLogin(email, name);
+    sendWelcomeEmail(name, email);
+    seen[email] = Date.now();
+    try { localStorage.setItem('manifold_seen', JSON.stringify(seen)); } catch(e){}
+  }
+  // Display-only copy of the session for the UI
+  sessionStorage.setItem('manifold_user',    name);
+  sessionStorage.setItem('manifold_email',   email);
+  sessionStorage.setItem('manifold_role',    role);
+  sessionStorage.setItem('manifold_picture', u.picture || '');
+  document.getElementById('loading-msg').textContent =
+    role === 'owner' ? 'Welcome back! \u2014 opening dashboard\u2026' : 'Access confirmed \u2014 opening your dashboard\u2026';
+  setTimeout(function(){ window.location.href = 'dashboard.html'; }, 700);
+}
+
+// STATIC-HOSTING FALLBACK (no server / no Worker): checks the token claims in the browser only.
+// This is a courtesy login — it is NOT access control. Use the Cloudflare Worker deployment for real protection.
+function staticFallback(credential){
+  var payload;
+  try{
+    var b64 = String(credential).split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    while(b64.length % 4) b64 += '=';
+    payload = JSON.parse(atob(b64));
+  }catch(e){ denied('Invalid token'); return; }
+  var nowS = Math.floor(Date.now()/1000);
+  var issOk = payload.iss==='https://accounts.google.com' || payload.iss==='accounts.google.com';
+  if(!issOk || payload.aud!==CLIENT_ID || !(payload.exp>nowS) || !payload.email || payload.email_verified===false){ denied('Token rejected'); return; }
+  var email = String(payload.email).toLowerCase().trim();
+  finishSignIn({ email: email, name: payload.name || email.split('@')[0], picture: (typeof payload.picture==='string' && payload.picture.indexOf('https://')===0) ? payload.picture : '', role: BUILTIN_ACCOUNTS[email] ? 'admin' : 'student' });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   USERNAME + PASSWORD ACCOUNTS (device-only)
+   Accounts live in this browser's localStorage; passwords are never stored — only a salted PBKDF2-SHA256 hash.
+   This is a convenience login, NOT server-side access control: anyone with access to this device/browser profile
+   can reset it, and accounts do not follow you to another phone/laptop.
+═══════════════════════════════════════════════════════════════ */
+/* Built-in ADMIN accounts: only a salted PBKDF2-SHA256 hash is stored here, never the password.
+   These two ids are reserved (nobody can register them). NOTE: this login runs in the browser, so it is a convenience
+   lock, not server-side access control. */
+var BUILTIN_ACCOUNTS = {
+  "vashudev@outpulse.company": {
+    "name": "Vashudev",
+    "salt": "57jgk4IZNZO4pbFZBPLQew==",
+    "hash": "njS8y4GDTbl5CGPfxeNoipz82LKgkhQi3CTJUyQORw8=",
+    "iter": 100000,
+    "role": "admin"
+  },
+  "vedshree@outpulse.company": {
+    "name": "Vedshree",
+    "salt": "w5M2W98PC2Oe8JCM16nDSA==",
+    "hash": "AlRYzR2Eo6SBtHPM7KYI4sDjNYi+g8q2VoNl1wN82RA=",
+    "iter": 100000,
+    "role": "admin"
+  }
+};
+var LS_ACC = 'manifold_local_accounts', PBKDF2_ITER = 100000, pwMode = 'in';
+function b64(bytes){ var s=''; for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return btoa(s); }
+function unb64(s){ var bin=atob(s), out=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+function loadAccounts(){ try { return JSON.parse(localStorage.getItem(LS_ACC) || '{}') || {}; } catch(e){ return {}; } }
+function saveAccounts(a){ localStorage.setItem(LS_ACC, JSON.stringify(a)); }
+function kdf(password, salt, iter){
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
+    .then(function(k){ return crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:salt, iterations:iter }, k, 256); })
+    .then(function(bits){ return new Uint8Array(bits); });
+}
+function sameBytes(a,b){ if(a.length!==b.length) return false; var r=0; for(var i=0;i<a.length;i++) r|=a[i]^b[i]; return r===0; }
+
+function pwMsg(t){ document.getElementById('pw-msg').textContent = t || ''; }
+function setPwMode(m){
+  pwMode = m;
+  var up = m === 'up';
+  document.getElementById('tab-in').classList.toggle('on', !up);  document.getElementById('tab-in').setAttribute('aria-selected', String(!up));
+  document.getElementById('tab-up').classList.toggle('on', up);   document.getElementById('tab-up').setAttribute('aria-selected', String(up));
+  document.getElementById('pw-name').style.display  = up ? 'block' : 'none';
+  document.getElementById('pw-pass2').style.display = up ? 'block' : 'none';
+  document.getElementById('pw-pass').autocomplete = up ? 'new-password' : 'current-password';
+  document.getElementById('pw-submit').textContent = up ? 'Create account' : 'Sign in';
+  pwMsg('');
+}
+
+function localAuth(mode, id, name, password){
+  var accts = loadAccounts();
+  var builtin = BUILTIN_ACCOUNTS[id] || null;
+  var fails = (accts.__fails && accts.__fails[id]) || { n:0, until:0 };
+  if(mode === 'up'){
+    if(builtin) return Promise.resolve({ error:'This username is reserved. Please choose another.' });
+    if(accts[id]) return Promise.resolve({ error:'An account with this name already exists on this device. Use Sign in.' });
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    return kdf(password, salt, PBKDF2_ITER).then(function(h){
+      accts[id] = { name:name, salt:b64(salt), hash:b64(h), iter:PBKDF2_ITER, created:Date.now() };
+      saveAccounts(accts);
+      return { user:{ email:id, name:name, picture:'', role:'student' } };
+    });
+  }
+  if(Date.now() < fails.until) return Promise.resolve({ error:'Too many wrong attempts. Wait ' + Math.ceil((fails.until-Date.now())/1000) + ' s and try again.' });
+  var a = builtin || accts[id] || null;
+  var salt2 = a ? unb64(a.salt) : crypto.getRandomValues(new Uint8Array(16));   // same work whether or not the account exists
+  return kdf(password, salt2, a ? a.iter : PBKDF2_ITER).then(function(h){
+    if(a && sameBytes(h, unb64(a.hash))){
+      if(accts.__fails && accts.__fails[id]){ delete accts.__fails[id]; saveAccounts(accts); }
+      return { user:{ email:id, name:a.name, picture:'', role:a.role || 'student' } };
+    }
+    accts.__fails = accts.__fails || {}; fails.n++; if(fails.n >= 5){ fails.until = Date.now() + 30000; fails.n = 0; }
+    accts.__fails[id] = fails; saveAccounts(accts);
+    return { error:'Wrong username or password.' };
+  });
+}
+
+function onPwSubmit(e){
+  e.preventDefault(); pwMsg('');
+  var up = pwMode === 'up';
+  var id = document.getElementById('pw-id').value.trim().toLowerCase();
+  var name = document.getElementById('pw-name').value.trim();
+  var pass = document.getElementById('pw-pass').value, pass2 = document.getElementById('pw-pass2').value;
+  if(!/^[a-z0-9][a-z0-9._@+\-]{2,63}$/.test(id)){ pwMsg('Use 3–64 characters: letters, numbers and . _ @ + - for the email/username.'); return; }
+  if(up){
+    if(name.length < 2){ pwMsg('Please enter your name.'); return; }
+    if(pass.length < 8){ pwMsg('Password must be at least 8 characters.'); return; }
+    if(pass !== pass2){ pwMsg('The two passwords do not match.'); return; }
+  } else if(!pass){ pwMsg('Enter your password.'); return; }
+  if(!window.crypto || !crypto.subtle){ pwMsg('This browser cannot do secure password hashing (needs https). Try another browser.'); return; }
+  var btn = document.getElementById('pw-submit'); btn.disabled = true;
+  localAuth(pwMode, id, name, pass).then(function(r){
+    btn.disabled = false;
+    if(r.error){ pwMsg(r.error); return; }
+    showState('loading');
+    document.getElementById('loading-msg').textContent = up ? 'Account created — opening your dashboard…' : (r.user.role === 'admin' ? 'Welcome, admin — opening your dashboard…' : 'Welcome back — opening your dashboard…');
+    finishSignIn(r.user, true);
+  }).catch(function(){ btn.disabled = false; pwMsg('Something went wrong. Please try again.'); });
+}
+
+window.addEventListener('load', function(){
+  document.getElementById('tab-in').addEventListener('click', function(){ setPwMode('in'); });
+  document.getElementById('tab-up').addEventListener('click', function(){ setPwMode('up'); });
+  document.getElementById('pw-form').addEventListener('submit', onPwSubmit);
+  document.getElementById('pw-note').textContent = 'Admins sign in with their assigned credentials. Other accounts are stored on this device only (the password is kept as a salted hash, never in plain text) and do not follow you to another phone or browser.';
+});
+
+function handleGoogleToken(response){
+  showState('loading');
+  // With the Cloudflare Worker the ID token is verified SERVER-SIDE (signature, issuer, audience, expiry,
+  // verified email) and a signed HttpOnly session cookie is set. On plain static hosting there is no /api,
+  // so we fall back to the browser-only check above.
+  fetch('api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ credential: response.credential })
+  }).then(function(r){
+    var ct = r.headers.get('content-type') || '';
+    if(r.status===404 || r.status===405 || r.status===501 || ct.indexOf('json')<0){ staticFallback(response.credential); return; }   // no server here (or a static host answering with HTML)
+    return r.json().catch(function(){ return {}; }).then(function(j){
+      if(!r.ok || !j.user){ denied(j && j.reason ? j.reason : 'Sign-in failed'); return; }
+      finishSignIn(j.user);
+    });
+  }).catch(function(){ staticFallback(response.credential); });
+}
+
+/* ── Silent Google Form submission (fire-and-forget) ── */
+function notifyLogin(email, name){
+  try{
+    var data = new FormData();
+    data.append(FORM_ENTRY_ACTION, 'Login');
+    data.append(FORM_ENTRY_EMAIL,  email);
+    data.append(FORM_ENTRY_NAME,   name);
+    fetch(FORM_URL, { method:'POST', mode:'no-cors', body:data });
+  }catch(e){ /* silently ignore */ }
+}
+
+/* ── Send welcome email via EmailJS ── */
+function sendWelcomeEmail(name, email){
+  if(typeof emailjs==='undefined'){
+    console.error('EmailJS not loaded');
+    return;
+  }
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_name:  name,
+    to_email: email,
+    name:     name,
+    email:    email,
+  }).then(function(r){
+    console.log('Email sent OK:', r.status, r.text);
+  }).catch(function(e){
+    console.error('Email failed:', JSON.stringify(e));
+  });
+}
+
+window.addEventListener('load', function(){
+  if(typeof emailjs!=='undefined') emailjs.init(EMAILJS_PUBLIC_KEY);
+  initGoogle();
+});
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>
