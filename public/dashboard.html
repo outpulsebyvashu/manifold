@@ -344,10 +344,10 @@ body.dark .alert .tx span{color:#ff9a63;}
       <div style="display:flex;align-items:center;margin-bottom:22px;position:relative">
         <a class="pill-dark" href="section05-playground.html" aria-label="Open the Dataset Playground">FEATURED <i>+</i></a>
       </div>
-      <div class="lbl" style="position:relative">Algorithms covered</div>
-      <div class="big2">5 <a class="chip" href="section-gpr.html" aria-label="Gaussian Process Regression">+ GPR</a></div>
+      <div class="lbl" id="algoLbl" style="position:relative">Algorithms covered</div>
+      <div class="big2"><span id="algoNum">5</span> <a id="gprChip" class="chip" href="section-gpr.html" aria-label="Gaussian Process Regression">+ GPR</a></div>
       <div class="tiles">
-        <a class="tile" href="section05-playground.html"><span>Built-in datasets</span><strong>9</strong></a>
+        <a class="tile" id="dsTile" href="section05-playground.html"><span>Built-in datasets</span><strong>9</strong></a>
         <a class="tile" href="#listTop" id="secTile"><span>Sections</span><strong id="secCount">10</strong></a>
       </div>
     </section>
@@ -461,11 +461,13 @@ const saveVisited = () => { try { localStorage.setItem(VKEY, JSON.stringify(visi
 let tab = 'all', mode = 'done', query = '';
 const dismissed = () => { try { return sessionStorage.getItem('manifold_dismiss_next'); } catch(e){ return null; } };
 
-const total = SECTIONS.length;
-const doneIds = () => SECTIONS.filter(s => visited[s.id]).map(s => s.id);
-const nextSec = () => SECTIONS.find(s => !visited[s.id]);
+const scope = () => SECTIONS.filter(s => tab === 'all' || s.cat === tab);
+const TABNAME = {all:'', f:'Foundations', t:'Techniques', k:'Tools'};
+let total = SECTIONS.length;
+const doneIds = () => scope().filter(s => visited[s.id]).map(s => s.id);
+const nextSec = () => scope().find(s => !visited[s.id]);
 const lastSec = () => {
-  const e = Object.entries(visited).filter(([id]) => SECTIONS.some(s => s.id === id)).sort((a,b) => b[1]-a[1])[0];
+  const e = Object.entries(visited).filter(([id]) => scope().some(s => s.id === id)).sort((a,b) => b[1]-a[1])[0];
   return e ? SECTIONS.find(s => s.id === e[0]) : null;
 };
 function fmtTime(ts){
@@ -479,18 +481,27 @@ function fmtTime(ts){
 
 /* ── Renderers ── */
 function renderHero(){
+  total = scope().length;
   const done = doneIds().length;
   $('bigNum').textContent = mode === 'done' ? done : total - done;
   $('bigOf').textContent = '/ ' + total;
   $('bigLbl').textContent = mode === 'done' ? 'Sections explored' : 'Sections remaining';
   const last = lastSec(), go = $('btnGo');
   if(last){ go.href = last.file; $('btnGoTx').textContent = 'Continue'; }
-  else    { go.href = SECTIONS[0].file; $('btnGoTx').textContent = 'Start learning'; }
+  else    { go.href = scope()[0].file; $('btnGoTx').textContent = 'Start learning'; }
   $('secCount').textContent = total;
+  const sc = scope(), algos = sc.filter(x => x.cat === 't').length;
+  $('algoLbl').textContent = tab === 'all' ? 'Algorithms covered' : tab === 'f' ? 'Foundation topics' : tab === 't' ? 'Algorithms covered' : 'Tools & labs';
+  $('algoNum').textContent = tab === 'all' || tab === 't' ? algos : sc.length;
+  $('gprChip').style.display = (tab === 'all') ? '' : 'none';
+  const dsT = $('dsTile');
+  if(tab === 'all' || tab === 'k'){ dsT.href = 'section05-playground.html'; dsT.firstElementChild.textContent = 'Built-in datasets'; dsT.lastElementChild.textContent = '9'; }
+  else { dsT.href = '#listTop'; dsT.firstElementChild.textContent = 'Opened'; dsT.lastElementChild.textContent = done; }
+  $('secTile').firstElementChild.textContent = TABNAME[tab] ? TABNAME[tab] + ' sections' : 'Sections';
 }
 
 function renderDonut(){
-  const done = doneIds().length, p = Math.round(done / total * 100), C = 2 * Math.PI * 52;
+  const total = scope().length, done = doneIds().length, p = total ? Math.round(done / total * 100) : 0, C = 2 * Math.PI * 52;
   $('ring').setAttribute('stroke-dasharray', `${C * done / total} ${C}`);
   $('pct').textContent = p + '%';
   const nx = nextSec(), n = $('note');
@@ -500,9 +511,9 @@ function renderDonut(){
 }
 
 function renderBars(){
-  const done = doneIds().length;
+  const done = doneIds().length, total = scope().length;
   $('leftNum').textContent = total - done;
-  $('bars').innerHTML = Object.keys(CATS).map((k, i) => {
+  $('bars').innerHTML = Object.keys(CATS).filter(k => tab === 'all' || k === tab).map((k, i) => {
     const all = SECTIONS.filter(s => s.cat === k), d = all.filter(s => visited[s.id]).length;
     const p = Math.round(d / all.length * 100);
     return `<div>
@@ -524,7 +535,7 @@ function renderRecent(){
       <button class="no" id="dismissBtn" aria-label="Dismiss suggestion">${CROSS}</button>
     </div>` : '';
   const ents = Object.entries(visited)
-    .filter(([id]) => SECTIONS.some(s => s.id === id)).sort((a,b) => b[1]-a[1]).slice(0,3);
+    .filter(([id]) => scope().some(s => s.id === id)).sort((a,b) => b[1]-a[1]).slice(0,3);
   let rows;
   if(ents.length){
     $('recentH').textContent = 'Recently opened';
@@ -533,7 +544,7 @@ function renderRecent(){
         <div class="tx"><b>${s.name}</b><span>${fmtTime(ts)}</span></div><span class="rt">${s.num}</span></a>`; });
   } else {
     $('recentH').textContent = 'Suggested';
-    rows = SECTIONS.filter(s => !nx || s.id !== nx.id).slice(0,3).map(s =>
+    rows = scope().filter(s => !nx || s.id !== nx.id).slice(0,3).map(s =>
       `<a class="row" href="${s.file}" data-id="${s.id}"><span class="ic cat-${s.cat}">${svg(I[s.id])}</span>
         <div class="tx"><b>${s.name}</b><span>${CATS[s.cat]}</span></div><span class="rt">${s.num}</span></a>`);
   }
@@ -576,9 +587,8 @@ $('tabs').addEventListener('click', e => {
   const b = e.target.closest('.tab'); if(!b) return;
   tab = b.dataset.t; query = ''; $('q').value = '';
   setTabUI(b.dataset.t);
-  renderList();
+  renderAll();
   try{ b.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); }catch(_){}
-  const lt=$('listTop'); if(lt) setTimeout(()=>{ try{ lt.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){ lt.scrollIntoView(); } },120);
 });
 document.querySelector('.seg').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
@@ -589,7 +599,7 @@ document.querySelector('.seg').addEventListener('click', e => {
 $('searchBtn').addEventListener('click', () => {
   const bar = $('searchBar'), open = bar.classList.toggle('open');
   $('searchBtn').setAttribute('aria-expanded', open);
-  if(open) $('q').focus(); else { query = ''; $('q').value = ''; setTabUI(tab); renderList(); }
+  if(open) $('q').focus(); else { query = ''; $('q').value = ''; setTabUI(tab); renderAll(); }
 });
 $('q').addEventListener('keydown', e => { if(e.key === 'Escape'){ $('searchBtn').click(); } });
 $('q').addEventListener('input', e => { query = e.target.value; setTabUI(query.trim() ? null : tab); renderList(); });
