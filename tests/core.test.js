@@ -1,5 +1,5 @@
 // Run: node tests/core.test.js   (compares manifold-core.js against NumPy/SciPy/sklearn fixtures)
-const M = require('../manifold-core.js'), fx = require('./fixtures.json');
+const M = require('../public/manifold-core.js'), fx = require('./fixtures.json');
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => { if (cond) { pass++; console.log('  ok   ' + name); } else { fail++; console.log('  FAIL ' + name, extra !== undefined ? extra : ''); } };
 const close = (a, b, tol) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(b));

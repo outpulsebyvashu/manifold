@@ -1,0 +1,14 @@
+{
+  "name": "manifold",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Interactive dimensionality-reduction learning platform (Cloudflare Workers + static assets)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node tests/core.test.js && node tests/worker.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

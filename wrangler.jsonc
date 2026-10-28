@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "manifold",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "none"
+  },
+  "vars": {
+    "GOOGLE_CLIENT_ID": "605465001206-caj9d5peigu55pdpc73biea0an7b9aea.apps.googleusercontent.com",
+    "OWNER_EMAIL": "shrawanvedshree@gmail.com"
+  },
+  "observability": { "enabled": true }
+}

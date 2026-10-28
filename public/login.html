@@ -152,7 +152,6 @@ body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
 var CLIENT_ID = '605465001206-caj9d5peigu55pdpc73biea0an7b9aea.apps.googleusercontent.com';
 
 /* Owner email — always gets 'owner' role, everyone else gets 'student' */
-var OWNER_EMAIL = 'shrawanvedshree@gmail.com';   // display-only label: roles here are NOT a security boundary (client-side)
 
 /* ── EmailJS — welcome email on every login ── */
 var EMAILJS_SERVICE_ID  = 'service_sml1v8u';
@@ -218,53 +217,46 @@ function initGoogle(){
 /* ── Called after user picks a Google account ── */
 function handleGoogleToken(response){
   showState('loading');
-  var payload;
-  try{
-    var b64=response.credential.split('.')[1];
-    var pad=b64.length%4;
-    if(pad)b64+=new Array(5-pad).join('=');
-    payload=JSON.parse(atob(b64.replace(/-/g,'+').replace(/_/g,'/')));
-  }catch(e){showState('signin');return;}
+  // The ID token is verified SERVER-SIDE (signature, issuer, audience, expiry, verified email) by the Worker,
+  // which then sets a signed HttpOnly session cookie. Nothing here is trusted.
+  fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ credential: response.credential })
+  }).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(j){ return { ok: r.ok, j: j }; });
+  }).then(function(res){
+    if(!res.ok || !res.j.user){
+      document.getElementById('denied-email-txt').textContent = (res.j && res.j.reason) ? res.j.reason : 'Sign-in failed';
+      showState('denied');
+      return;
+    }
+    var u = res.j.user, email = u.email, name = u.name, role = u.role;
 
-  // Client-side sanity checks on the ID-token claims (this does NOT replace server-side signature verification)
-  var nowS = Math.floor(Date.now()/1000);
-  var issOk = payload.iss==='https://accounts.google.com' || payload.iss==='accounts.google.com';
-  if(!issOk || payload.aud!==CLIENT_ID || !(payload.exp>nowS) || !payload.email || payload.email_verified===false){
-    document.getElementById('denied-email-txt').textContent = 'Token rejected';
+    // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
+    var seen = {};
+    try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
+    if(!seen[email]){
+      notifyLogin(email, name);
+      sendWelcomeEmail(name, email);
+      seen[email] = Date.now();
+      try { localStorage.setItem('manifold_seen', JSON.stringify(seen)); } catch(e){}
+    }
+
+    // Display-only copy of the session for the UI (the real session is the HttpOnly cookie)
+    sessionStorage.setItem('manifold_user',    name);
+    sessionStorage.setItem('manifold_email',   email);
+    sessionStorage.setItem('manifold_role',    role);
+    sessionStorage.setItem('manifold_picture', u.picture || '');
+
+    document.getElementById('loading-msg').textContent =
+      role === 'owner' ? 'Welcome back! \u2014 opening dashboard\u2026' : 'Access confirmed \u2014 opening your dashboard\u2026';
+    setTimeout(function(){ window.location.href = 'dashboard.html'; }, 700);
+  }).catch(function(){
+    document.getElementById('denied-email-txt').textContent = 'Could not reach the server';
     showState('denied');
-    return;
-  }
-
-  var email   = (payload.email  ||'').toLowerCase().trim();
-  var name    = payload.name    || email.split('@')[0];
-  var picture = payload.picture || '';
-
-  // Owner gets special role; everyone else is a student
-  var role = (email === OWNER_EMAIL) ? 'owner' : 'student';
-
-  // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
-  // (limits spam and abuse of the EmailJS quota; consent text is shown on the card)
-  var seen = {};
-  try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
-  if(!seen[email]){
-    notifyLogin(email, name);
-    sendWelcomeEmail(name, email);
-    seen[email] = Date.now();
-    try { localStorage.setItem('manifold_seen', JSON.stringify(seen)); } catch(e){}
-  }
-
-  // Save session — dashboard reads these
-  sessionStorage.setItem('manifold_user',    name);
-  sessionStorage.setItem('manifold_email',   email);
-  sessionStorage.setItem('manifold_role',    role);
-  sessionStorage.setItem('manifold_picture', picture);
-
-  document.getElementById('loading-msg').textContent =
-    role === 'owner'
-      ? 'Welcome back! \u2014 opening dashboard\u2026'
-      : 'Access confirmed \u2014 opening your dashboard\u2026';
-
-  setTimeout(function(){ window.location.href = 'dashboard.html'; }, 900);
+  });
 }
 
 /* ── Silent Google Form submission (fire-and-forget) ── */

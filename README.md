@@ -5,10 +5,6 @@
 
 ---
 
-## 🌐 Live Site
-**[barfiiii.github.io/Manifold/login.html](https://barfiiii.github.io/Manifold/login.html?v=2)**
-
----
 
 ## 📚 What's Inside
 
@@ -43,45 +39,11 @@
 - Canvas API for all visualisations
 - Google Identity Services for authentication
 - EmailJS for welcome emails
-- Hosted on GitHub Pages
+- Hosted on Cloudflare Workers (static assets + a small Worker for server-side sign-in)
 
 ---
 
-## 🚀 Run Locally
 
-```bash
-# Clone the repo
-git clone https://github.com/barfiiii/Manifold.git
-cd Manifold
-
-# Start a local server
-python -m http.server 8000
-
-# Open in browser
-http://localhost:8000/login.html
-```
-
----
-
-## 📁 File Structure
-
-```
-Manifold/
-├── login.html
-├── dashboard.html
-├── section-01.html       # Curse of Dimensionality
-├── section-02.html       # What is DR?
-├── section-pca.html
-├── section-tsne.html
-├── section-umap.html
-├── section-lda.html
-├── section-isomap.html
-├── section-compare.html
-├── section05-playground.html
-└── section-gpr.html
-```
-
----
 
 ## 👤 Author
 
@@ -100,18 +62,32 @@ It is checked against NumPy / SciPy / scikit-learn reference values:
 node tests/core.test.js
 ```
 
-## 🔐 Notes on access control
+---
 
-`guard.js` redirects to `login.html` when there is no session, but **this is a courtesy lock only** — everything runs in
-the browser and can be bypassed. For real access control, verify the Google ID token on a server. Also review your
-EmailJS dashboard: restrict allowed origins and fix the template recipient so the public key cannot be used to mail
-arbitrary addresses.
-
-## 📁 Extra files
+## ☁️ Cloudflare
 
 ```
-manifold-core.js     # shared, tested maths + helpers
-guard.js             # session redirect + progress recording
-tests/               # node tests + NumPy/SciPy fixtures
-AUDIT.md             # audit findings and fix status
+public/            static site (login.html, dashboard.html, section pages, manifold-core.js, guard.js)
+src/worker.mjs     Worker: verifies the Google ID token server-side, sets a signed HttpOnly session cookie,
+                   serves ./public DENY-BY-DEFAULT (only login.html + shared JS are public), adds security headers
+wrangler.jsonc     Worker + static assets config
+tests/             core.test.js (maths vs NumPy/SciPy/sklearn) and worker.test.mjs (auth, cookies, gating)
+AUDIT.md           audit findings and fix status
 ```
+
+**Deploy (dashboard, no computer needed):** Cloudflare dashboard → *Workers & Pages* → *Create* → *Import a repository*
+→ pick this repo → keep the defaults (deploy command `npx wrangler deploy`). The Worker name must stay `manifold`.
+
+**Required secret:** `SESSION_SECRET` — a long random string (Worker → *Settings* → *Variables and Secrets* → add as *Secret*).
+**Vars** (already in `wrangler.jsonc`): `GOOGLE_CLIENT_ID`, `OWNER_EMAIL` (display-only role label).
+
+**Google sign-in:** in Google Cloud Console → OAuth client → *Authorised JavaScript origins*, add your Worker URL
+(e.g. `https://manifold.<your-subdomain>.workers.dev`) and any custom domain.
+
+**CLI alternative:** `npm i && npx wrangler secret put SESSION_SECRET && npx wrangler deploy`
+(local dev: copy `.dev.vars.example` to `.dev.vars`, then `npx wrangler dev`).
+
+**Tests:** `npm test`
+
+> Still recommended: in the EmailJS dashboard restrict allowed origins and fix the template recipient (the public key
+> is visible in `login.html`), and pin `@emailjs/browser` to an exact version with an SRI hash.

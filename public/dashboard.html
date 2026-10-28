@@ -590,7 +590,7 @@ window.addEventListener('pageshow', e => { if(e.persisted){
   renderAll();
 }});
 
-document.addEventListener('click', e => { if(e.target.closest('#logoutBtn')){ try { sessionStorage.clear(); } catch(err){} } });
+document.addEventListener('click', e => { if(e.target.closest('#logoutBtn')){ try { fetch('/api/logout',{method:'POST',keepalive:true,credentials:'same-origin'}); } catch(err){} try { sessionStorage.clear(); } catch(err){} } });
 
 /* ── Session info ── */
 (function(){
