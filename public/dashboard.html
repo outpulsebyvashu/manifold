@@ -153,7 +153,7 @@ body.dark .btn.ghost{border-color:#3b463b;}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;}
 .tile{display:block;background:rgba(255,255,255,.5);border-radius:18px;padding:12px 14px;transition:transform .15s}
 .tile:active,.pill-dark:active,.c-lime .chip:active{transform:scale(.96)}
-.c-lime .chip{text-decoration:none}
+.c-lime .chip{text-decoration:none;letter-spacing:0;font-size:13px;height:28px;padding:0 12px;white-space:nowrap;flex-shrink:0}
 a,button{touch-action:manipulation}
 .tile span{display:block;font-size:12px;color:rgba(15,59,31,.7);}
 .tile strong{display:block;font-size:22px;font-weight:400;margin-top:4px;letter-spacing:-.02em;}
@@ -391,7 +391,7 @@ body.dark .alert .tx span{color:#ff9a63;}
   </main>
 
   <!-- ═══ ALL SECTIONS ═══ -->
-  <div class="list-h" id="listTop"><h2>All sections</h2><span class="chip" id="listCount">10</span></div>
+  <div class="list-h" id="listTop"><h2 id="listTitle">All sections</h2><span class="chip" id="listCount">10</span></div>
   <div class="cards" id="cards"></div>
 
   <p class="foot">Manifold · Interactive dimensionality reduction</p>
@@ -547,6 +547,7 @@ function renderList(){
     return tab === 'all' || s.cat === tab;
   });
   $('listCount').textContent = list.length;
+  const lt=$('listTitle'); if(lt) lt.textContent = q ? 'Search results' : ({all:'All sections',f:'Foundations',t:'Techniques',k:'Tools'}[tab]||'All sections');
   $('cards').innerHTML = list.length ? list.map(s => `
     <a class="sec" href="${s.file}" data-id="${s.id}">
       <div class="sec-top">
@@ -576,6 +577,8 @@ $('tabs').addEventListener('click', e => {
   tab = b.dataset.t; query = ''; $('q').value = '';
   setTabUI(b.dataset.t);
   renderList();
+  try{ b.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'}); }catch(_){}
+  const lt=$('listTop'); if(lt) setTimeout(()=>{ try{ lt.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){ lt.scrollIntoView(); } },120);
 });
 document.querySelector('.seg').addEventListener('click', e => {
   const b = e.target.closest('button'); if(!b) return;
