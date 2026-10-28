@@ -95,7 +95,12 @@ AUDIT.md           audit findings and fix status
 **Required secret:** `SESSION_SECRET` — a long random string (Worker → *Settings* → *Variables and Secrets* → add as *Secret*).
 **Vars** (already in `wrangler.jsonc`): `GOOGLE_CLIENT_ID`, `OWNER_EMAIL` (display-only role label).
 
-**Google sign-in:** in Google Cloud Console → OAuth client → *Authorised JavaScript origins*, add your Worker URL
+**Sign-in:** username + password works with no setup. Two built-in admin accounts (`vashudev@outpulse.company`,
+`vedshree@outpulse.company`) are reserved; other people create an account on their device. Everything runs in the browser
+(accounts are device-only, passwords stored as salted PBKDF2 hashes), so this is a convenience lock — set `GATE_MODE` to
+`"server"` in `wrangler.jsonc` (and sign in with Google) for real server-side protection.
+
+**Google sign-in (optional):** in Google Cloud Console → OAuth client → *Authorised JavaScript origins*, add your Worker URL
 (e.g. `https://manifold.<your-subdomain>.workers.dev`) and any custom domain.
 
 **Static hosting (no server):** the contents of `public/` also run on Cloudflare Pages (upload a zip / folder) or GitHub Pages.

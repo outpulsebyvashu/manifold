@@ -11,7 +11,8 @@
   },
   "vars": {
     "GOOGLE_CLIENT_ID": "605465001206-caj9d5peigu55pdpc73biea0an7b9aea.apps.googleusercontent.com",
-    "OWNER_EMAIL": "shrawanvedshree@gmail.com"
+    "ADMIN_EMAILS": "vashudev@outpulse.company,vedshree@outpulse.company",
+    "GATE_MODE": "open"
   },
   "observability": { "enabled": true }
 }

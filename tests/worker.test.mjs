@@ -49,14 +49,14 @@ ok('rejected when expired', (await readSession(tok, SECRET, Date.now() + 9 * 360
 ok('rejected when empty / malformed', (await readSession('', SECRET)) === null && (await readSession('a.b.c', SECRET)) === null);
 
 console.log('HTTP behaviour');
-const env = { SESSION_SECRET: SECRET, GOOGLE_CLIENT_ID: CLIENT, OWNER_EMAIL: 'ada@example.com', ASSETS: { fetch: async (req) => new Response('asset:' + new URL(req.url).pathname, { status: 200 }) } };
+const env = { SESSION_SECRET: SECRET, GOOGLE_CLIENT_ID: CLIENT, ADMIN_EMAILS: 'someone@x.com, ada@example.com', GATE_MODE: 'server', ASSETS: { fetch: async (req) => new Response('asset:' + new URL(req.url).pathname, { status: 200 }) } };
 const call = (path, init = {}) => worker.fetch(new Request('https://manifold.example' + path, init), env);
 const login = async (credential, extra = {}) => call('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'https://manifold.example', ...extra }, body: JSON.stringify({ credential }) });
 
 let r = await login(await idToken());
 const setCookieHdr = r.headers.get('Set-Cookie') || '';
 const j = await r.json();
-ok('login 200 with user JSON', r.status === 200 && j.user.email === 'ada@example.com' && j.user.role === 'owner', j);
+ok('login 200 with user JSON', r.status === 200 && j.user.email === 'ada@example.com' && j.user.role === 'admin', j);
 ok('cookie is HttpOnly; Secure; SameSite; __Host-', /^__Host-manifold=/.test(setCookieHdr) && /HttpOnly/.test(setCookieHdr) && /Secure/.test(setCookieHdr) && /SameSite=Lax/.test(setCookieHdr) && /Path=\//.test(setCookieHdr), setCookieHdr);
 const cookie = setCookieHdr.split(';')[0];
 r = await login(await idToken({ aud: 'evil' }));        ok('login 401 for a bad token', r.status === 401);
@@ -79,6 +79,15 @@ r = await call('/manifold-core.js');                        ok('manifold-core.js
 r = await call('/dashboard.html', { method: 'POST', headers: { Cookie: cookie } }); ok('POST to a page -> 405', r.status === 405);
 r = await call('/api/logout', { method: 'POST' });          ok('logout clears the cookie', r.status === 200 && /Max-Age=0/.test(r.headers.get('Set-Cookie')));
 ok('all responses carry X-Frame-Options DENY', (await call('/api/me')).headers.get('X-Frame-Options') === 'DENY');
+
+console.log('GATE_MODE open (default)');
+const openEnv = { ...env, GATE_MODE: undefined };
+let ro = await worker.fetch(new Request('https://manifold.example/section-pca.html'), openEnv);
+ok('open mode serves pages without a cookie (client-side login only)', ro.status === 200 && (await ro.text()) === 'asset:/section-pca.html');
+ro = await worker.fetch(new Request('https://manifold.example/'), openEnv);
+ok('open mode serves index.html at /', ro.status === 200 && (await ro.text()) === 'asset:/index.html');
+ro = await worker.fetch(new Request('https://manifold.example/section-pca.html'), { ...env, GATE_MODE: 'server' });
+ok('server mode still redirects without a cookie', ro.status === 302);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

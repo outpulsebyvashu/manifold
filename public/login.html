@@ -51,6 +51,17 @@ canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
 .state{display:none;flex-direction:column;align-items:center;gap:14px;}
 .state.active{display:flex;}
 #g_id_signin{display:flex;justify-content:center;}
+.pw-tabs{display:flex;gap:6px;width:100%;margin-bottom:4px}
+.pw-tabs button{flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.pw-tabs button.on{background:rgba(0,212,255,.12);border-color:rgba(0,212,255,.45);color:var(--accent)}
+#pw-form{display:flex;flex-direction:column;gap:10px;width:100%}
+#pw-form input{height:46px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);padding:0 14px;font:inherit;font-size:16px;outline:none;width:100%}
+#pw-form input:focus{border-color:var(--accent)}
+#pw-submit{height:46px;border-radius:10px;border:0;background:linear-gradient(135deg,#00d4ff,#10b981);color:#04091a;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+#pw-submit:disabled{opacity:.6;cursor:wait}
+#pw-msg{min-height:18px;font-size:12px;color:var(--rose);line-height:1.5}
+#pw-note{font-size:11px;color:var(--muted);line-height:1.6}
+body.light #pw-form input{background:rgba(0,0,0,.03)}
 .divider{display:flex;align-items:center;gap:10px;width:100%;margin-top:4px;}
 .divider-line{flex:1;height:1px;background:rgba(255,255,255,.06);}
 .divider-txt{font-size:11px;color:var(--muted);white-space:nowrap;}
@@ -106,16 +117,29 @@ body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
 
   <div class="card">
     <div class="card-title">Welcome</div>
-    <div class="card-desc">Sign in with any Google account to access the platform</div>
+    <div class="card-desc">Sign in or create an account to access the platform</div>
 
     <!-- State 1: Sign-in button -->
     <div class="state active" id="state-signin">
-      <div id="g_id_signin"></div>
+      <div class="pw-tabs" role="tablist">
+        <button type="button" id="tab-in" class="on" role="tab" aria-selected="true">Sign in</button>
+        <button type="button" id="tab-up" role="tab" aria-selected="false">Create account</button>
+      </div>
+      <form id="pw-form" autocomplete="on" novalidate>
+        <input id="pw-name" type="text" placeholder="Your name" autocomplete="name" style="display:none" maxlength="80">
+        <input id="pw-id" type="text" placeholder="Email or username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="64">
+        <input id="pw-pass" type="password" placeholder="Password" autocomplete="current-password" maxlength="128">
+        <input id="pw-pass2" type="password" placeholder="Repeat password" autocomplete="new-password" style="display:none" maxlength="128">
+        <button type="submit" id="pw-submit">Sign in</button>
+        <div id="pw-msg" role="alert"></div>
+        <div id="pw-note"></div>
+      </form>
       <div class="divider">
         <div class="divider-line"></div>
-        <div class="divider-txt">Open to all Google accounts</div>
+        <div class="divider-txt">or continue with Google</div>
         <div class="divider-line"></div>
       </div>
+      <div id="g_id_signin"></div>
     </div>
 
     <!-- State 2: Verifying -->
@@ -134,7 +158,7 @@ body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
     </div>
 
     <div class="note" id="bottom-note">
-      Sign in with any Google account &mdash; no registration needed.<br>
+      Sign in with a username and password, or with any Google account.<br>
       <span style="opacity:.8">On your first sign-in we record your name and email in a login log and send you one welcome email. No other data is collected.</span>
     </div>
   </div>
@@ -221,12 +245,13 @@ function denied(msg){
 }
 
 // Shared finish step once we know who the user is (from the server, or the static fallback)
-function finishSignIn(u){
+function finishSignIn(u, noNotify){
   var email = u.email, name = u.name, role = u.role;
   // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
+  // (Google sign-ins only: their email is verified. Password accounts never trigger emails — the address is not verified.)
   var seen = {};
   try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
-  if(!seen[email]){
+  if(!noNotify && !seen[email]){
     notifyLogin(email, name);
     sendWelcomeEmail(name, email);
     seen[email] = Date.now();
@@ -255,8 +280,118 @@ function staticFallback(credential){
   var issOk = payload.iss==='https://accounts.google.com' || payload.iss==='accounts.google.com';
   if(!issOk || payload.aud!==CLIENT_ID || !(payload.exp>nowS) || !payload.email || payload.email_verified===false){ denied('Token rejected'); return; }
   var email = String(payload.email).toLowerCase().trim();
-  finishSignIn({ email: email, name: payload.name || email.split('@')[0], picture: (typeof payload.picture==='string' && payload.picture.indexOf('https://')===0) ? payload.picture : '', role: 'student' });
+  finishSignIn({ email: email, name: payload.name || email.split('@')[0], picture: (typeof payload.picture==='string' && payload.picture.indexOf('https://')===0) ? payload.picture : '', role: BUILTIN_ACCOUNTS[email] ? 'admin' : 'student' });
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   USERNAME + PASSWORD ACCOUNTS (device-only)
+   Accounts live in this browser's localStorage; passwords are never stored — only a salted PBKDF2-SHA256 hash.
+   This is a convenience login, NOT server-side access control: anyone with access to this device/browser profile
+   can reset it, and accounts do not follow you to another phone/laptop.
+═══════════════════════════════════════════════════════════════ */
+/* Built-in ADMIN accounts: only a salted PBKDF2-SHA256 hash is stored here, never the password.
+   These two ids are reserved (nobody can register them). NOTE: this login runs in the browser, so it is a convenience
+   lock, not server-side access control. */
+var BUILTIN_ACCOUNTS = {
+  "vashudev@outpulse.company": {
+    "name": "Vashudev",
+    "salt": "57jgk4IZNZO4pbFZBPLQew==",
+    "hash": "njS8y4GDTbl5CGPfxeNoipz82LKgkhQi3CTJUyQORw8=",
+    "iter": 100000,
+    "role": "admin"
+  },
+  "vedshree@outpulse.company": {
+    "name": "Vedshree",
+    "salt": "w5M2W98PC2Oe8JCM16nDSA==",
+    "hash": "AlRYzR2Eo6SBtHPM7KYI4sDjNYi+g8q2VoNl1wN82RA=",
+    "iter": 100000,
+    "role": "admin"
+  }
+};
+var LS_ACC = 'manifold_local_accounts', PBKDF2_ITER = 100000, pwMode = 'in';
+function b64(bytes){ var s=''; for(var i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return btoa(s); }
+function unb64(s){ var bin=atob(s), out=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i); return out; }
+function loadAccounts(){ try { return JSON.parse(localStorage.getItem(LS_ACC) || '{}') || {}; } catch(e){ return {}; } }
+function saveAccounts(a){ localStorage.setItem(LS_ACC, JSON.stringify(a)); }
+function kdf(password, salt, iter){
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
+    .then(function(k){ return crypto.subtle.deriveBits({ name:'PBKDF2', hash:'SHA-256', salt:salt, iterations:iter }, k, 256); })
+    .then(function(bits){ return new Uint8Array(bits); });
+}
+function sameBytes(a,b){ if(a.length!==b.length) return false; var r=0; for(var i=0;i<a.length;i++) r|=a[i]^b[i]; return r===0; }
+
+function pwMsg(t){ document.getElementById('pw-msg').textContent = t || ''; }
+function setPwMode(m){
+  pwMode = m;
+  var up = m === 'up';
+  document.getElementById('tab-in').classList.toggle('on', !up);  document.getElementById('tab-in').setAttribute('aria-selected', String(!up));
+  document.getElementById('tab-up').classList.toggle('on', up);   document.getElementById('tab-up').setAttribute('aria-selected', String(up));
+  document.getElementById('pw-name').style.display  = up ? 'block' : 'none';
+  document.getElementById('pw-pass2').style.display = up ? 'block' : 'none';
+  document.getElementById('pw-pass').autocomplete = up ? 'new-password' : 'current-password';
+  document.getElementById('pw-submit').textContent = up ? 'Create account' : 'Sign in';
+  pwMsg('');
+}
+
+function localAuth(mode, id, name, password){
+  var accts = loadAccounts();
+  var builtin = BUILTIN_ACCOUNTS[id] || null;
+  var fails = (accts.__fails && accts.__fails[id]) || { n:0, until:0 };
+  if(mode === 'up'){
+    if(builtin) return Promise.resolve({ error:'This username is reserved. Please choose another.' });
+    if(accts[id]) return Promise.resolve({ error:'An account with this name already exists on this device. Use Sign in.' });
+    var salt = crypto.getRandomValues(new Uint8Array(16));
+    return kdf(password, salt, PBKDF2_ITER).then(function(h){
+      accts[id] = { name:name, salt:b64(salt), hash:b64(h), iter:PBKDF2_ITER, created:Date.now() };
+      saveAccounts(accts);
+      return { user:{ email:id, name:name, picture:'', role:'student' } };
+    });
+  }
+  if(Date.now() < fails.until) return Promise.resolve({ error:'Too many wrong attempts. Wait ' + Math.ceil((fails.until-Date.now())/1000) + ' s and try again.' });
+  var a = builtin || accts[id] || null;
+  var salt2 = a ? unb64(a.salt) : crypto.getRandomValues(new Uint8Array(16));   // same work whether or not the account exists
+  return kdf(password, salt2, a ? a.iter : PBKDF2_ITER).then(function(h){
+    if(a && sameBytes(h, unb64(a.hash))){
+      if(accts.__fails && accts.__fails[id]){ delete accts.__fails[id]; saveAccounts(accts); }
+      return { user:{ email:id, name:a.name, picture:'', role:a.role || 'student' } };
+    }
+    accts.__fails = accts.__fails || {}; fails.n++; if(fails.n >= 5){ fails.until = Date.now() + 30000; fails.n = 0; }
+    accts.__fails[id] = fails; saveAccounts(accts);
+    return { error:'Wrong username or password.' };
+  });
+}
+
+function onPwSubmit(e){
+  e.preventDefault(); pwMsg('');
+  var up = pwMode === 'up';
+  var id = document.getElementById('pw-id').value.trim().toLowerCase();
+  var name = document.getElementById('pw-name').value.trim();
+  var pass = document.getElementById('pw-pass').value, pass2 = document.getElementById('pw-pass2').value;
+  if(!/^[a-z0-9][a-z0-9._@+\-]{2,63}$/.test(id)){ pwMsg('Use 3–64 characters: letters, numbers and . _ @ + - for the email/username.'); return; }
+  if(up){
+    if(name.length < 2){ pwMsg('Please enter your name.'); return; }
+    if(pass.length < 8){ pwMsg('Password must be at least 8 characters.'); return; }
+    if(pass !== pass2){ pwMsg('The two passwords do not match.'); return; }
+  } else if(!pass){ pwMsg('Enter your password.'); return; }
+  if(!window.crypto || !crypto.subtle){ pwMsg('This browser cannot do secure password hashing (needs https). Try another browser.'); return; }
+  var btn = document.getElementById('pw-submit'); btn.disabled = true;
+  localAuth(pwMode, id, name, pass).then(function(r){
+    btn.disabled = false;
+    if(r.error){ pwMsg(r.error); return; }
+    showState('loading');
+    document.getElementById('loading-msg').textContent = up ? 'Account created — opening your dashboard…' : (r.user.role === 'admin' ? 'Welcome, admin — opening your dashboard…' : 'Welcome back — opening your dashboard…');
+    finishSignIn(r.user, true);
+  }).catch(function(){ btn.disabled = false; pwMsg('Something went wrong. Please try again.'); });
+}
+
+window.addEventListener('load', function(){
+  document.getElementById('tab-in').addEventListener('click', function(){ setPwMode('in'); });
+  document.getElementById('tab-up').addEventListener('click', function(){ setPwMode('up'); });
+  document.getElementById('pw-form').addEventListener('submit', onPwSubmit);
+  document.getElementById('pw-note').textContent = 'Admins sign in with their assigned credentials. Other accounts are stored on this device only (the password is kept as a salted hash, never in plain text) and do not follow you to another phone or browser.';
+});
 
 function handleGoogleToken(response){
   showState('loading');
@@ -269,7 +404,8 @@ function handleGoogleToken(response){
     credentials: 'same-origin',
     body: JSON.stringify({ credential: response.credential })
   }).then(function(r){
-    if(r.status===404 || r.status===405 || r.status===501){ staticFallback(response.credential); return; }   // no server here
+    var ct = r.headers.get('content-type') || '';
+    if(r.status===404 || r.status===405 || r.status===501 || ct.indexOf('json')<0){ staticFallback(response.credential); return; }   // no server here (or a static host answering with HTML)
     return r.json().catch(function(){ return {}; }).then(function(j){
       if(!r.ok || !j.user){ denied(j && j.reason ? j.reason : 'Sign-in failed'); return; }
       finishSignIn(j.user);

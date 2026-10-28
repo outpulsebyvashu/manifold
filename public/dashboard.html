@@ -602,7 +602,7 @@ document.addEventListener('click', e => { if(e.target.closest('#logoutBtn')){ tr
     picture = sessionStorage.getItem('manifold_picture') || '';
   } catch(e){}
   $('who').textContent = name.split(' ')[0] || 'there';
-  $('acct').textContent = email || (role === 'owner' ? name + ' ★' : name);
+  $('acct').textContent = (role === 'admin' || role === 'owner' ? 'Admin · ' : '') + (email || name);
   const av = $('avatar');
   if(picture && /^https:\/\//.test(picture)){
     const img = document.createElement('img');

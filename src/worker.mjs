@@ -5,13 +5,15 @@
  *                                        and sets a signed, HttpOnly, Secure session cookie
  *  GET  /api/me                      -> the signed-in user (from the cookie) or 401
  *  POST /api/logout                  -> clears the cookie
- *  everything else                   -> static files from ./public, DENY-BY-DEFAULT: only login.html and the
- *                                        shared JS are public; every other page needs a valid session cookie.
+ *  everything else                   -> static files from ./public. With GATE_MODE="server" it is DENY-BY-DEFAULT:
+ *                                        only login.html and the shared JS are public; every other page needs a valid
+ *                                        session cookie. With GATE_MODE="open" (default) pages are served as static files.
  *
  * Secrets / vars (see wrangler.jsonc, README):
  *   SESSION_SECRET   (secret)  long random string used to HMAC-sign session cookies
  *   GOOGLE_CLIENT_ID (var)     OAuth client id the ID token must have been issued for
- *   OWNER_EMAIL      (var)     optional; gets role "owner" (display only)
+ *   ADMIN_EMAILS     (var)     comma-separated; get role "admin" (display only)
+ *   GATE_MODE        (var)     "server" | "open" (default)
  */
 
 const COOKIE = '__Host-manifold';
@@ -134,6 +136,9 @@ const LOGIN_CSP_REPORT_ONLY =
   "img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://api.emailjs.com https://docs.google.com; " +
   "frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'";
 
+/* admins (display role only): comma-separated ADMIN_EMAILS (falls back to the legacy OWNER_EMAIL) */
+function adminList(env) { return String(env.ADMIN_EMAILS || env.OWNER_EMAIL || '').toLowerCase().split(',').map(function (x) { return x.trim(); }).filter(Boolean); }
+
 /* ───────── API ───────── */
 async function api(request, env, url) {
   const path = url.pathname;
@@ -163,7 +168,7 @@ async function api(request, env, url) {
       sub: claims.sub, email,
       name: String(claims.name || email.split('@')[0]).slice(0, 120),
       picture: typeof claims.picture === 'string' && claims.picture.startsWith('https://') ? claims.picture : '',
-      role: env.OWNER_EMAIL && email === String(env.OWNER_EMAIL).toLowerCase() ? 'owner' : 'student',
+      role: adminList(env).indexOf(email) >= 0 ? 'admin' : 'student',
     };
     const token = await makeSession(user, env.SESSION_SECRET);
     return json({ user: { name: user.name, email: user.email, picture: user.picture, role: user.role } }, 200, { 'Set-Cookie': setCookie(token, SESSION_TTL) });
@@ -181,8 +186,15 @@ async function site(request, env, url) {
     const res = await env.ASSETS.fetch(request);
     return path === '/login.html' ? withSecurityHeaders(res, { 'Content-Security-Policy-Report-Only': LOGIN_CSP_REPORT_ONLY, 'Cache-Control': 'no-cache' }) : res;
   }
-  const session = await readSession(getCookie(request, COOKIE), env.SESSION_SECRET);
-  if (!session) return Response.redirect(new URL('/login.html', url).toString(), 302);
+  // GATE_MODE "server": every non-public page needs a valid signed session cookie (Google sign-in via /api/login).
+  // Anything else ("open", the default): pages are served as static files and the browser-side login is a convenience
+  // lock only (needed for username/password accounts, which cannot create a server session).
+  if (env.GATE_MODE === 'server') {
+    const session = await readSession(getCookie(request, COOKIE), env.SESSION_SECRET);
+    if (!session) return Response.redirect(new URL('/login.html', url).toString(), 302);
+  } else if (path === '/' || path === '/index.html') {
+    return withSecurityHeaders(await env.ASSETS.fetch(new Request(new URL('/index.html', url), request)), { 'Cache-Control': 'no-cache' });
+  }
 
   if (path === '/' || path === '/index.html') return Response.redirect(new URL('/dashboard.html', url).toString(), 302);
   const res = await env.ASSETS.fetch(request);
