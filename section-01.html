@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curse of Dimensionality — Manifold</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#060b1a; --surface:rgba(255,255,255,0.03); --surface-h:rgba(255,255,255,0.055);
+  --border:rgba(255,255,255,0.07); --border-h:rgba(255,255,255,0.13);
+  --accent:#00d4ff; --gold:#f59e0b; --green:#10b981; --rose:#f43f5e; --purple:#8b5cf6;
+  --text:#dde8f5; --muted:#4e6a84; --soft:#7a9ab8;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.75;overflow-x:hidden;}
+
+/* ─── NAV ─── */
+.topnav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;
+  padding:15px 32px;background:rgba(6,11,26,.94);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);gap:14px;}
+.nav-logo{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--text);}
+.nav-sep{color:var(--muted);}
+.nav-crumb{font-size:13px;color:var(--muted);}
+.nav-back{margin-left:auto;font-size:12px;color:var(--muted);text-decoration:none;
+  padding:7px 16px;border:1px solid var(--border);border-radius:8px;font-weight:500;transition:.2s;}
+.nav-back:hover{color:var(--text);border-color:var(--border-h);}
+.reading-bar{position:fixed;top:0;left:0;height:2px;background:var(--gold);z-index:200;width:0%;transition:width .08s;}
+
+/* ─── HERO ─── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:100px 24px 60px;position:relative;overflow:hidden;}
+.hero canvas{position:absolute;inset:0;z-index:0;pointer-events:none;}
+.blob{position:absolute;border-radius:50%;filter:blur(130px);pointer-events:none;z-index:0;}
+.b1{width:480px;height:480px;background:#f59e0b;opacity:.04;top:-150px;right:-120px;}
+.b2{width:380px;height:380px;background:#7c3aed;opacity:.05;bottom:-100px;left:-80px;}
+.hero-inner{position:relative;z-index:1;max-width:760px;}
+.hero-eyebrow{display:inline-block;font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  font-weight:500;color:var(--gold);margin-bottom:24px;border-bottom:1px solid rgba(245,158,11,.3);padding-bottom:8px;}
+.hero-title{font-family:'Playfair Display',serif;font-size:clamp(40px,6vw,72px);font-weight:700;
+  line-height:1.08;margin-bottom:22px;color:#eef4ff;letter-spacing:-.5px;}
+.hero-title em{font-style:italic;color:var(--gold);}
+.hero-body{font-size:17px;color:var(--soft);line-height:1.85;max-width:580px;margin:0 auto 44px;font-weight:300;}
+.scroll-cue{color:var(--muted);font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
+  display:flex;flex-direction:column;align-items:center;gap:9px;animation:bob 2.2s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(7px);}}
+
+/* ─── LAYOUT ─── */
+.section{padding:88px 24px;max-width:1000px;margin:0 auto;}
+.eyebrow{font-size:10.5px;letter-spacing:3px;text-transform:uppercase;font-weight:600;
+  color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.eyebrow::after{content:'';flex:1;height:1px;background:rgba(245,158,11,.2);max-width:60px;}
+.sec-title{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);font-weight:700;
+  color:#eef4ff;margin-bottom:14px;letter-spacing:-.3px;line-height:1.15;}
+.sec-body{font-size:15px;color:var(--soft);line-height:1.85;max-width:680px;margin-bottom:44px;font-weight:300;}
+
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* ─── ANALOGY ─── */
+.analogy{background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.14);
+  border-radius:18px;padding:28px 30px;margin-bottom:28px;display:flex;gap:18px;align-items:flex-start;}
+.analogy-icon{font-size:30px;flex-shrink:0;}
+.analogy-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--gold);margin-bottom:5px;}
+.analogy-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:600;color:#eef4ff;margin-bottom:7px;}
+.analogy-text{font-size:14px;color:var(--soft);line-height:1.8;font-weight:300;}
+
+/* ─── STEP SYSTEM ─── */
+.steps-wrap{display:flex;flex-direction:column;gap:40px;margin-bottom:56px;}
+.step-block{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start;
+  background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:30px;
+  transition:.2s;}
+.step-block:hover{border-color:var(--border-h);}
+.step-block.full{grid-template-columns:1fr;}
+@media(max-width:700px){.step-block{grid-template-columns:1fr;}}
+.step-left{}
+.step-badge{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;}
+.step-num{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-size:13px;font-weight:700;color:var(--gold);}
+.step-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;color:var(--muted);}
+.step-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#eef4ff;margin-bottom:10px;line-height:1.25;}
+.step-text{font-size:14px;color:var(--soft);line-height:1.85;font-weight:300;margin-bottom:14px;}
+.step-math{font-family:'JetBrains Mono',monospace;font-size:13px;
+  background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);
+  border-radius:10px;padding:14px 18px;color:#a5d8ff;line-height:1.8;margin-bottom:12px;}
+.step-insight{display:inline-block;font-size:12.5px;font-weight:500;
+  color:var(--gold);background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.18);
+  border-radius:8px;padding:5px 12px;}
+.step-right{display:flex;flex-direction:column;gap:10px;}
+.step-canvas-lbl{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;
+  font-weight:600;color:var(--muted);margin-bottom:6px;}
+canvas.step-canvas{width:100%;border-radius:12px;background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.05);display:block;}
+.step-canvas-note{font-size:12px;color:var(--muted);font-weight:300;line-height:1.65;font-style:italic;}
+
+/* ─── SLIDER ROW ─── */
+.slider-row{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+.s-label{font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:500;min-width:120px;}
+input[type=range]{flex:1;min-width:140px;appearance:none;height:4px;border-radius:3px;
+  background:rgba(255,255,255,.08);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:17px;height:17px;border-radius:50%;
+  background:var(--gold);border:2px solid var(--bg);cursor:pointer;box-shadow:0 0 8px rgba(245,158,11,.4);}
+.s-val{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold);width:44px;text-align:right;}
+
+/* ─── STAT STRIP ─── */
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:56px;}
+@media(max-width:640px){.stat-strip{grid-template-columns:1fr 1fr;}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 18px;text-align:center;}
+.stat-n{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:5px;}
+.stat-l{font-size:11.5px;color:var(--muted);line-height:1.5;font-weight:300;}
+
+/* ─── DATASET EXPLORER ─── */
+.explorer{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:32px;margin-bottom:20px;}
+.explorer-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#eef4ff;margin-bottom:6px;}
+.explorer-sub{font-size:13px;color:var(--muted);font-weight:300;margin-bottom:28px;}
+.ds-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;}
+.ds-btn{padding:8px 18px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;
+  border:1px solid var(--border);color:var(--muted);transition:.2s;background:none;}
+.ds-btn.active{background:rgba(245,158,11,.12);color:var(--gold);border-color:rgba(245,158,11,.3);}
+.ds-btn:not(.active):hover{border-color:var(--border-h);color:var(--text);}
+.explorer-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:640px){.explorer-grid{grid-template-columns:1fr;}}
+.explorer-panel{display:flex;flex-direction:column;gap:10px;}
+.exp-canvas-lbl{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--muted);}
+canvas.exp-canvas{width:100%;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.05);display:block;}
+.exp-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px;}
+.exp-metric{background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.exp-m-val{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--accent);}
+.exp-m-lbl{font-size:10px;color:var(--muted);margin-top:2px;font-weight:300;}
+.explorer-insight{margin-top:16px;padding:14px 18px;background:rgba(245,158,11,.05);
+  border:1px solid rgba(245,158,11,.14);border-radius:12px;font-size:13px;color:rgba(245,158,11,.85);
+  line-height:1.75;font-weight:300;}
+
+/* ─── QUIZ ─── */
+.quiz-wrap{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:22px;
+  padding:36px;margin-top:70px;}
+.quiz-eyebrow{font-size:10.5px;letter-spacing:3px;text-transform:uppercase;font-weight:600;color:var(--gold);margin-bottom:8px;}
+.quiz-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#eef4ff;margin-bottom:4px;}
+.quiz-sub{font-size:13px;color:var(--muted);font-weight:300;margin-bottom:26px;}
+.q-progress{display:flex;gap:6px;margin-bottom:26px;}
+.q-pip{height:3px;flex:1;border-radius:2px;background:var(--border);transition:.3s;}
+.q-pip.correct{background:var(--green);} .q-pip.wrong{background:var(--rose);} .q-pip.current{background:var(--gold);}
+.q-card{display:none;}
+.q-card.active{display:block;animation:up .35s ease;}
+@keyframes up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.q-num{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:500;margin-bottom:10px;}
+.q-text{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;color:#eef4ff;margin-bottom:20px;line-height:1.45;}
+.q-opts{display:flex;flex-direction:column;gap:10px;}
+.q-opt{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;
+  padding:13px 18px;font-size:14px;cursor:pointer;text-align:left;color:var(--soft);
+  font-family:'DM Sans',sans-serif;font-weight:300;transition:.15s;}
+.q-opt:hover:not(:disabled){background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.22);color:var(--text);}
+.q-opt.correct{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#6ee7b7;}
+.q-opt.wrong{background:rgba(244,63,94,.08);border-color:rgba(244,63,94,.25);color:#fda4af;}
+.q-opt:disabled{cursor:default;}
+.q-feedback{margin-top:14px;padding:13px 16px;border-radius:10px;font-size:13.5px;
+  line-height:1.75;font-weight:300;display:none;}
+.q-feedback.show{display:block;}
+.fb-c{background:rgba(16,185,129,.07);color:#a7f3d0;border:1px solid rgba(16,185,129,.18);}
+.fb-w{background:rgba(244,63,94,.07);color:#fda4af;border:1px solid rgba(244,63,94,.18);}
+.quiz-footer{display:flex;align-items:center;gap:12px;margin-top:20px;flex-wrap:wrap;}
+.q-btn{padding:10px 24px;border-radius:9px;font-family:'DM Sans',sans-serif;font-weight:600;
+  font-size:13px;border:none;cursor:pointer;transition:.18s;}
+.q-btn:hover{opacity:.85;}
+.q-btn-main{background:var(--gold);color:#1a0e00;}
+.q-btn-sec{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.q-score{margin-left:auto;font-size:13px;font-weight:600;color:var(--soft);}
+
+/* two-col helper */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:640px){.two-col{grid-template-columns:1fr;}}
+.info-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;}
+.info-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:#eef4ff;margin-bottom:8px;}
+.info-body{font-size:13.5px;color:var(--muted);line-height:1.8;font-weight:300;}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:rgba(255,255,255,0.12);border-color:var(--accent,#00d4ff);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
+
+/* ── Light mode: fix hardcoded #eef4ff titles & canvas ── */
+body.light h1,body.light h2,body.light h3,
+body.light .section-title,body.light .analogy-title,
+body.light .step-title,body.light .explorer-title,
+body.light .quiz-title,body.light .q-text,
+body.light .info-title,body.light .tech-name,
+body.light .why-title,body.light .ba-card-title,
+body.light .type-title,body.light .card-title-text,
+body.light .hero-title,body.light .eyebrow-title,
+body.light .insight-title,body.light .manifold-title{
+  color:#0f1b2d !important;
+}
+body.light .tech-desc{color:#3a5270 !important;}
+body.light .tech-when{color:#3a5270 !important;font-weight:600;}
+body.light .code-block{
+  color:#1a3a5c !important;
+  background:rgba(0,0,0,0.06) !important;
+  border-color:rgba(0,0,0,0.1) !important;
+}
+/* Keep all viz canvases dark — looks intentional */
+body.light canvas:not(#bg){
+  background:#1a2240 !important;
+  border-color:rgba(0,212,255,0.15) !important;
+}
+/* Fix tech-row cards */
+body.light .tech-row{
+  background:rgba(255,255,255,0.6) !important;
+  border-color:rgba(0,0,0,0.08) !important;
+}
+body.light .tech-row:hover{
+  background:rgba(255,255,255,0.9) !important;
+}
+/* Fix before/after cards */
+body.light .ba-card{
+  background:rgba(255,255,255,0.6) !important;
+  border-color:rgba(0,0,0,0.08) !important;
+}
+
+</style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+</head>
+<body>
+
+<div class="reading-bar" id="readingBar"></div>
+<nav class="topnav">
+  <div class="nav-logo">Manifold</div>
+  <div class="nav-sep">/</div>
+  <div class="nav-crumb">Curse of Dimensionality</div>
+  <a href="dashboard.html" class="nav-back">← Dashboard</a>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="heroCanvas"></canvas>
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Section 01 · Foundation</div>
+    <h1 class="hero-title">The <em>Curse</em> of<br>Dimensionality</h1>
+    <p class="hero-body">
+      Why does adding more information sometimes make things worse?
+      This section explains the surprising, counterintuitive problems that emerge
+      when data has too many features — and why this is the core reason dimensionality reduction exists.
+    </p>
+    <div class="scroll-cue">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      Scroll to explore
+    </div>
+  </div>
+</section>
+
+<!-- ANALOGY -->
+<section class="section reveal">
+  <div class="eyebrow">Start Here</div>
+  <h2 class="sec-title">Let's Build the Intuition First</h2>
+  <p class="sec-body">Before any numbers, let's understand what "dimensionality" even means — using things you already know.</p>
+
+  <div class="analogy">
+    <div class="analogy-icon">📍</div>
+    <div>
+      <div class="analogy-lbl">Analogy 1</div>
+      <div class="analogy-title">Finding a friend in a city</div>
+      <div class="analogy-text">
+        Imagine you want to find your friend. If you're on a <strong style="color:var(--text);">straight road (1D)</strong>, they can only be ahead or behind — easy to find.
+        On a <strong style="color:var(--text);">city grid (2D)</strong>, they could be anywhere on a flat map — harder, but manageable.
+        In a <strong style="color:var(--text);">skyscraper (3D)</strong>, they could be on any floor too — even harder.
+        Now imagine they could be at any point in a space with <strong style="color:var(--text);">100 different axes</strong>.
+        The number of places to search explodes so fast that finding them becomes practically impossible.
+        <em style="color:var(--gold);">This explosion of space is the curse of dimensionality.</em>
+      </div>
+    </div>
+  </div>
+
+  <div class="analogy">
+    <div class="analogy-icon">🧂</div>
+    <div>
+      <div class="analogy-lbl">Analogy 2</div>
+      <div class="analogy-title">Salt in a glass vs. salt in an ocean</div>
+      <div class="analogy-text">
+        Take a pinch of salt and drop it in a glass of water — you'll taste it immediately.
+        Drop the same pinch in the ocean — it disappears. The amount of salt (your data) stayed the same,
+        but the space it has to fill grew so large that the data became invisible.
+        In machine learning, adding more dimensions is like growing the ocean.
+        <em style="color:var(--gold);">Your data points stay the same, but the space they need to fill becomes enormous.</em>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEQUENTIAL MATH STEPS -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">Step by Step</div>
+  <h2 class="sec-title">The Four Problems — With the Math</h2>
+  <p class="sec-body">
+    We'll walk through each problem one at a time. For every step, you'll see the idea,
+    the mathematics behind it, and a live visual showing exactly what's happening to the data.
+  </p>
+
+  <div class="steps-wrap">
+
+    <!-- STEP 1: Volume explosion -->
+    <div class="step-block">
+      <div class="step-left">
+        <div class="step-badge">
+          <div class="step-num">1</div>
+          <div class="step-label">Problem One</div>
+        </div>
+        <div class="step-title">Space Grows Exponentially</div>
+        <div class="step-text">
+          Imagine a line of length 1. That's 1D. Now add a second axis — you get a square with area 1×1 = 1.
+          Add a third — a cube with volume 1×1×1 = 1. Sounds manageable.<br><br>
+          But the <em>number of corners</em> doubles every time you add a dimension.
+          And if you try to divide each side into 10 sections to cover the space, you need 10 boxes in 1D,
+          100 in 2D, 1000 in 3D... and 10 billion boxes in 10D.
+          Your data points don't grow — but the space they need to fill does, exponentially.
+        </div>
+        <div class="step-math">
+          Boxes needed to cover a d-dimensional space:
+          10ᵈ
+          
+          d=1  →  10 boxes
+          d=2  →  100 boxes
+          d=5  →  100,000 boxes
+          d=10 →  10,000,000,000 boxes
+        </div>
+        <span class="step-insight">👉 Same data, exponentially more empty space</span>
+      </div>
+      <div class="step-right">
+        <div class="step-canvas-lbl">Watch: space grows as we add dimensions</div>
+        <div class="slider-row">
+          <div class="s-label">Dimensions</div>
+          <input type="range" id="s1Slider" min="1" max="10" value="1" oninput="step1(this.value)">
+          <div class="s-val" id="s1Val">1</div>
+        </div>
+        <canvas class="step-canvas" id="s1Canvas" height="240"></canvas>
+        <div class="step-canvas-note" id="s1Note">In 1D, 500 points fill the line densely. One point every 0.002 units.</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Data Sparsity -->
+    <div class="step-block">
+      <div class="step-left">
+        <div class="step-badge">
+          <div class="step-num">2</div>
+          <div class="step-label">Problem Two</div>
+        </div>
+        <div class="step-title">Data Becomes Sparse</div>
+        <div class="step-text">
+          Because the space grows so fast, your data points end up spread very far apart — even if you have thousands of them.
+          We call this <strong style="color:var(--text);">sparsity</strong>: most of the space is simply empty.<br><br>
+          Why does this matter? Most machine learning methods work by finding patterns among nearby points.
+          If all points are far apart, there are no nearby neighbours to learn from.
+          It's like trying to understand a city's culture by visiting only 10 houses when there are billions of blocks.
+        </div>
+        <div class="step-math">
+          To keep the same data density when adding 1 dimension,
+          you need to multiply your sample size by 10.
+
+          1D:  n = 10 samples
+          2D:  n = 100 samples
+          5D:  n = 100,000 samples
+          10D: n = 10 billion samples
+        </div>
+        <span class="step-insight">👉 You'd need impossibly large datasets in high dimensions</span>
+      </div>
+      <div class="step-right">
+        <div class="step-canvas-lbl">Watch: 300 points becoming sparse</div>
+        <div class="slider-row">
+          <div class="s-label">Dimensions</div>
+          <input type="range" id="s2Slider" min="1" max="20" value="1" oninput="step2(this.value)">
+          <div class="s-val" id="s2Val">1</div>
+        </div>
+        <canvas class="step-canvas" id="s2Canvas" height="240"></canvas>
+        <div class="step-canvas-note" id="s2Note">In 1D the 300 points are dense. Watch them scatter as dimensions increase.</div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Distance concentration -->
+    <div class="step-block">
+      <div class="step-left">
+        <div class="step-badge">
+          <div class="step-num">3</div>
+          <div class="step-label">Problem Three</div>
+        </div>
+        <div class="step-title">All Distances Become Equal</div>
+        <div class="step-text">
+          In 2D, some points are close to each other and some are far away. That contrast is meaningful —
+          it's how we define "similar" and "different."<br><br>
+          In high dimensions, something strange happens: the gap between the closest and farthest pair
+          of points shrinks to almost nothing. Every pair of points ends up roughly the same distance apart.
+          <strong style="color:var(--text);">"Near" and "far" lose their meaning.</strong><br><br>
+          This breaks algorithms like K-Nearest Neighbours completely —
+          if everyone is equally far away, there's no such thing as a "nearest neighbour."
+        </div>
+        <div class="step-math">
+          Distance concentration ratio:
+          
+          R(d) = max_distance / min_distance
+          
+          In low d:   R is large (big contrast)
+          As d → ∞:  R → 1.0 (no contrast at all)
+          
+          When R ≈ 1: the concept of "nearest 
+          neighbour" becomes meaningless.
+        </div>
+        <span class="step-insight">👉 Similarity-based algorithms fail in high dimensions</span>
+      </div>
+      <div class="step-right">
+        <div class="step-canvas-lbl">Watch: distance histogram collapsing</div>
+        <div class="slider-row">
+          <div class="s-label">Dimensions</div>
+          <input type="range" id="s3Slider" min="1" max="100" value="2" oninput="step3(this.value)">
+          <div class="s-val" id="s3Val">2</div>
+        </div>
+        <canvas class="step-canvas" id="s3Canvas" height="240"></canvas>
+        <div class="step-canvas-note" id="s3Note">The histogram shows pairwise distances between 120 random points. Wide = meaningful contrast. Narrow = all distances look the same.</div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Volume of hypersphere -->
+    <div class="step-block">
+      <div class="step-left">
+        <div class="step-badge">
+          <div class="step-num">4</div>
+          <div class="step-label">Problem Four</div>
+        </div>
+        <div class="step-title">Data Concentrates on the Edge</div>
+        <div class="step-text">
+          In 2D, if you draw a circle inside a square, the circle covers about 79% of the square's area.
+          You'd expect random points to mostly land inside the circle.<br><br>
+          In high dimensions, the same calculation produces a shocking result:
+          the volume of the sphere relative to the cube approaches <strong style="color:var(--text);">zero</strong>.
+          Almost all the data ends up in the corners — at the edges of the space.
+          The centre of the data distribution becomes completely empty.<br><br>
+          This means that techniques which assume data is spread smoothly (like density estimation) completely fail.
+        </div>
+        <div class="step-math">
+          Volume of unit hypersphere in d dimensions:
+          
+          V(d) = πᵈ/² / Γ(d/2 + 1)
+          
+          d=2:   V = 3.14  (78.5% of square)
+          d=5:   V = 5.26  (16.4% of hypercube)
+          d=10:  V = 2.55  (0.25% of hypercube)
+          d=20:  V ≈ 0.026 (≈ 0% of hypercube)
+        </div>
+        <span class="step-insight">👉 In high dimensions, almost all space is in the corners</span>
+      </div>
+      <div class="step-right">
+        <div class="step-canvas-lbl">Watch: sphere volume vs. cube</div>
+        <div class="slider-row">
+          <div class="s-label">Dimensions</div>
+          <input type="range" id="s4Slider" min="1" max="20" value="2" oninput="step4(this.value)">
+          <div class="s-val" id="s4Val">2</div>
+        </div>
+        <canvas class="step-canvas" id="s4Canvas" height="240"></canvas>
+        <div class="step-canvas-note" id="s4Note">Blue = inside the sphere. Orange = corners only. Watch the centre empty out as d increases.</div>
+      </div>
+    </div>
+
+  </div><!-- /steps-wrap -->
+</section>
+
+<!-- BY THE NUMBERS -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">Summary</div>
+  <h2 class="sec-title">What the Numbers Tell Us</h2>
+  <div class="stat-strip">
+    <div class="stat-card">
+      <div class="stat-n" style="color:var(--gold);">10ᵈ</div>
+      <div class="stat-l">Boxes needed to cover d-dimensional space</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-n" style="color:var(--accent);">→ 1.0</div>
+      <div class="stat-l">Distance contrast ratio as dimensions → ∞</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-n" style="color:var(--green);">≈ 0%</div>
+      <div class="stat-l">Volume of hypersphere inside hypercube at d=20</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-n" style="color:var(--rose);">10¹⁰</div>
+      <div class="stat-l">Samples needed to match 1D density at d=10</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="info-card">
+      <div class="info-title">🔑 The Core Insight</div>
+      <div class="info-body">
+        Adding more features (dimensions) does not always help. Beyond a certain point, it actively hurts —
+        making data sparse, distances meaningless, and models unreliable. This is exactly why we need to
+        reduce dimensions before analysing data.
+      </div>
+    </div>
+    <div class="info-card">
+      <div class="info-title">💡 The Good News</div>
+      <div class="info-body">
+        Real-world data doesn't actually spread out randomly across all dimensions.
+        It tends to cluster on a lower-dimensional surface — called a <strong style="color:var(--text);">manifold</strong>.
+        Dimensionality reduction finds that surface and works with it directly.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATASET EXPLORER -->
+<section class="section reveal" style="padding-top:0;">
+  <div class="eyebrow">Try It Yourself</div>
+  <h2 class="sec-title">Dataset Explorer</h2>
+  <p class="sec-body">
+    Choose any of the datasets below, then adjust the number of dimensions.
+    Watch how the curse of dimensionality affects the data in real time —
+    see sparsity grow and distance contrast collapse.
+  </p>
+
+  <div class="explorer">
+    <div class="explorer-title">Pick a Dataset</div>
+    <div class="explorer-sub">All datasets are pre-loaded. Select one and explore the effects of dimensionality.</div>
+
+    <div class="ds-row" id="dsRow">
+      <button class="ds-btn active" onclick="setDS('iris',this)">🌸 Iris-like</button>
+      <button class="ds-btn" onclick="setDS('wine',this)">🍷 Wine-like</button>
+      <button class="ds-btn" onclick="setDS('swiss',this)">🌀 Swiss Roll</button>
+      <button class="ds-btn" onclick="setDS('blobs',this)">🔵 Random Blobs</button>
+      <button class="ds-btn" onclick="setDS('moons',this)">🌙 Two Moons</button>
+    </div>
+
+    <div class="slider-row">
+      <div class="s-label">Total dimensions (2 informative + noise)</div>
+      <input type="range" id="expSlider" min="1" max="10" value="2" oninput="updateExplorer(this.value)">
+      <div class="s-val" id="expVal">2</div>
+    </div>
+
+    <div class="explorer-grid">
+      <div class="explorer-panel">
+        <div class="exp-canvas-lbl">2D view of the d-dimensional data</div>
+        <canvas class="exp-canvas" id="expCanvas" height="280"></canvas>
+      </div>
+      <div class="explorer-panel">
+        <div class="exp-canvas-lbl">Distance Distribution</div>
+        <canvas class="exp-canvas" id="expDistCanvas" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="exp-metrics">
+      <div class="exp-metric">
+        <div class="exp-m-val" id="mDensity">—</div>
+        <div class="exp-m-lbl">5-NN label accuracy</div>
+      </div>
+      <div class="exp-metric">
+        <div class="exp-m-val" id="mContrast">—</div>
+        <div class="exp-m-lbl">Max / min distance</div>
+      </div>
+      <div class="exp-metric">
+        <div class="exp-m-val" id="mSparsity">—</div>
+        <div class="exp-m-lbl">Nearest ÷ average distance</div>
+      </div>
+    </div>
+
+    <div class="explorer-insight" id="expInsight">Select a dataset and adjust the slider to explore.</div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section class="section reveal" style="padding-top:0;padding-bottom:100px;">
+  <div class="quiz-wrap">
+    <div class="quiz-eyebrow">Section Quiz</div>
+    <div class="quiz-title">Check Your Understanding</div>
+    <div class="quiz-sub">Six questions — no prior knowledge needed, just the concepts from this section.</div>
+    <div class="q-progress" id="qProg"></div>
+
+    <div id="q0" class="q-card active">
+      <div class="q-num">Question 1 of 6</div>
+      <div class="q-text">If you divide a 1D line into 10 equal segments, and then try to do the same for a 10-dimensional space, how many segments do you need?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(0,0,false)">100 (10 × 10)</button>
+        <button class="q-opt" onclick="ans(0,1,false)">1,000 (10 × 100)</button>
+        <button class="q-opt" onclick="ans(0,2,true)">10 billion (10¹⁰)</button>
+        <button class="q-opt" onclick="ans(0,3,false)">10 (same as 1D)</button>
+      </div>
+      <div class="q-feedback" id="fb0">Each new dimension multiplies the number of boxes by 10. So for d=10, you need 10¹⁰ = 10,000,000,000 boxes. This exponential explosion is the mathematical heart of the curse.</div>
+    </div>
+
+    <div id="q1" class="q-card">
+      <div class="q-num">Question 2 of 6</div>
+      <div class="q-text">You have 1,000 data points in a 2D space and they feel reasonably dense. How many points would you need to maintain the same density in a 5D space?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(1,0,false)">5,000 (just multiply by 5)</button>
+        <button class="q-opt" onclick="ans(1,1,false)">10,000 (multiply by 10)</button>
+        <button class="q-opt" onclick="ans(1,2,true)">About 32 million (1,000<sup>5/2</sup>)</button>
+        <button class="q-opt" onclick="ans(1,3,false)">1,000 (same — density doesn't change)</button>
+      </div>
+      <div class="q-feedback" id="fb1">1,000 points in 2D means about &radic;1000 &asymp; 32 points along each axis. Keeping that 32-per-axis density in 5D needs 32&#8309; &asymp; 32 million points (1,000<sup>5/2</sup>). Every added dimension multiplies the requirement (here by &asymp;32); the exact factor depends on the density you start from, but the growth is always exponential.</div>
+    </div>
+
+    <div id="q2" class="q-card">
+      <div class="q-num">Question 3 of 6</div>
+      <div class="q-text">In very high dimensions, what happens to the distances between data points?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(2,0,false)">Some points get much closer, some get much farther apart</button>
+        <button class="q-opt" onclick="ans(2,1,true)">All pairwise distances become nearly equal, making "nearest" meaningless</button>
+        <button class="q-opt" onclick="ans(2,2,false)">All points converge to the same location</button>
+        <button class="q-opt" onclick="ans(2,3,false)">Distances become negative</button>
+      </div>
+      <div class="q-feedback" id="fb2">This is called distance concentration. As dimensions increase, the ratio of the maximum to minimum distance between points approaches 1.0 — meaning all distances look the same. A K-Nearest Neighbour algorithm, for example, completely loses the ability to distinguish close from far.</div>
+    </div>
+
+    <div id="q3" class="q-card">
+      <div class="q-num">Question 4 of 6</div>
+      <div class="q-text">In 2D, a circle inside a square takes up about 79% of the area. What happens in very high dimensions (like 20D)?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(3,0,false)">The sphere still takes up about 79%</button>
+        <button class="q-opt" onclick="ans(3,1,false)">The sphere becomes larger than the cube</button>
+        <button class="q-opt" onclick="ans(3,2,true)">The sphere takes up nearly 0% of the cube — almost all space is in the corners</button>
+        <button class="q-opt" onclick="ans(3,3,false)">The sphere and cube become the same shape</button>
+      </div>
+      <div class="q-feedback" id="fb3">The volume of a sphere relative to a cube shrinks dramatically with dimensions. At d=20, almost all points in the hypercube are in the "corners" rather than the centre. This means the centre of your data distribution is nearly empty, which breaks many statistical methods that assume data fills space smoothly.</div>
+    </div>
+
+    <div id="q4" class="q-card">
+      <div class="q-num">Question 5 of 6</div>
+      <div class="q-text">Why is the "salt in the ocean" analogy a good description of data sparsity?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(4,0,false)">Because both involve chemistry</button>
+        <button class="q-opt" onclick="ans(4,1,true)">Because the amount of data (salt) stays the same while the space (water) grows enormously, making the data invisible</button>
+        <button class="q-opt" onclick="ans(4,2,false)">Because oceans have exactly as many dimensions as data</button>
+        <button class="q-opt" onclick="ans(4,3,false)">Because salt dissolves, just like data is deleted</button>
+      </div>
+      <div class="q-feedback" id="fb4">The analogy captures sparsity perfectly: same quantity, vastly larger container. In machine learning, you can't just "add more salt" easily — collecting enough data to maintain density in high-dimensional spaces is often practically impossible.</div>
+    </div>
+
+    <div id="q5" class="q-card">
+      <div class="q-num">Question 6 of 6</div>
+      <div class="q-text">What is the main reason dimensionality reduction exists?</div>
+      <div class="q-opts">
+        <button class="q-opt" onclick="ans(5,0,false)">To make datasets look smaller on screen</button>
+        <button class="q-opt" onclick="ans(5,1,false)">To delete features that scientists don't like</button>
+        <button class="q-opt" onclick="ans(5,2,true)">To escape the curse of dimensionality — by finding a compact, lower-dimensional representation that preserves the important structure</button>
+        <button class="q-opt" onclick="ans(5,3,false)">To convert categorical data into numbers</button>
+      </div>
+      <div class="q-feedback" id="fb5">Exactly. Dimensionality reduction is the direct solution to the curse. Instead of working in an impossibly large space, we find a lower-dimensional surface where the data actually lives — making computation tractable, patterns visible, and models more reliable.</div>
+    </div>
+
+    <div class="quiz-footer">
+      <button class="q-btn q-btn-sec" onclick="prev()">← Previous</button>
+      <button class="q-btn q-btn-main" onclick="next()">Next →</button>
+      <div class="q-score" id="qScore">Score: 0 / 6</div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ── Reading bar ── */
+window.addEventListener('scroll',()=>{document.getElementById('readingBar').style.width=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%';});
+
+/* ── Scroll reveal ── */
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+/* ── Hero canvas ── */
+(function(){
+  const cv=document.getElementById('heroCanvas'),ctx=cv.getContext('2d');
+  let W,H,pts;
+  function resize(){W=cv.width=cv.offsetWidth;H=cv.height=cv.offsetHeight;}
+  function mkPts(){pts=Array.from({length:90},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.3+.4,a:Math.random()*.3+.07}));}
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach((p,i)=>{
+      pts.slice(i+1).forEach(q=>{const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<95){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle=`rgba(245,158,11,${.04*(1-d/95)})`;ctx.lineWidth=.5;ctx.stroke();}});
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(245,158,11,${p.a})`;ctx.fill();
+      p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  resize();mkPts();draw();
+  window.addEventListener('resize',()=>{resize();mkPts();});
+})();
+
+/* ═══════════════════════════════
+   STEP 1 — Volume explosion
+═══════════════════════════════ */
+let _r=MCore.seededRNG(2024);const R=()=>_r();   // reproducible demos (same slider value -> same picture)
+function step1(d){
+  d=parseInt(d);
+  _r=MCore.seededRNG(100+d);
+  document.getElementById('s1Val').textContent=d;
+  const cv=document.getElementById('s1Canvas');cv.width=cv.offsetWidth;
+  const W=cv.width,H=240,ctx=cv.getContext('2d'),m=24;
+  ctx.clearRect(0,0,W,H);
+
+  const n=400;
+  const pts=Array.from({length:n},()=>Array.from({length:Math.max(d,2)},()=>R()));
+
+  // project to 2D using first two dims
+  const pw=W-2*m,ph=H-2*m-20;
+
+  // grid lines
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+  for(let i=0;i<=8;i++){ctx.beginPath();ctx.moveTo(m+pw*i/8,m);ctx.lineTo(m+pw*i/8,m+ph);ctx.stroke();}
+  for(let i=0;i<=6;i++){ctx.beginPath();ctx.moveTo(m,m+ph*i/6);ctx.lineTo(m+pw,m+ph*i/6);ctx.stroke();}
+
+  pts.forEach(p=>{
+    const x=m+p[0]*pw,y=m+p[1]*ph;
+    // color by "distance from centre" in full d-space
+    const dist=Math.sqrt(p.reduce((a,v)=>a+(v-.5)**2,0));
+    const t=Math.min(1,dist/Math.sqrt(d*.25));
+    const r=Math.round(t*245),b=Math.round((1-t)*255);
+    ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${r},100,${b},.65)`;ctx.fill();
+  });
+
+  const boxes=Math.pow(10,d);
+  const boxStr=boxes>=1e9?`${(boxes/1e9).toFixed(0)}B`:boxes>=1e6?`${(boxes/1e6).toFixed(0)}M`:boxes>=1e3?`${boxes/1e3}K`:boxes;
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.font='11px DM Sans';
+  ctx.fillText(`d=${d}  |  ${boxStr} boxes needed to cover the space`,m,H-6);
+
+  const densityFrac=(1/Math.pow(10,Math.min(d,10))*100);
+  document.getElementById('s1Note').textContent=
+    d===1?`In 1D, 400 points fill a line — quite dense. Only 10 boxes needed.`:
+    d<=3?`In ${d}D, points are manageable. You need ${boxStr} boxes — but 400 points still provide some coverage.`:
+    d<=6?`In ${d}D, ${boxStr} boxes needed but only 400 points. Most boxes are completely empty.`:
+    `In ${d}D, ${boxStr} boxes and only 400 points. Each box has a ${densityFrac.toFixed(6)}% chance of containing any data at all.`;
+}
+document.getElementById('s1Canvas').width=document.getElementById('s1Canvas').offsetWidth;step1(1);
+window.addEventListener('resize',()=>step1(document.getElementById('s1Slider').value));
+
+/* ═══════════════════════════════
+   STEP 2 — Sparsity
+═══════════════════════════════ */
+function step2(d){
+  d=parseInt(d);
+  _r=MCore.seededRNG(200+d);
+  document.getElementById('s2Val').textContent=d;
+  const cv=document.getElementById('s2Canvas');cv.width=cv.offsetWidth;
+  const W=cv.width,H=240,ctx=cv.getContext('2d'),m=24;
+  ctx.clearRect(0,0,W,H);
+  const n=300,pw=W-2*m,ph=H-2*m-20;
+
+  // simulate sparsity by computing avg nearest neighbour distance
+  const pts=Array.from({length:n},()=>Array.from({length:d},()=>R()));
+  const sample=pts.slice(0,80);
+  let totalNN=0;
+  sample.forEach(p=>{
+    let minD=Infinity;
+    pts.forEach(q=>{if(q!==p){const dd=Math.sqrt(p.reduce((a,v,i)=>a+(v-q[i])**2,0));if(dd<minD)minD=dd;}});
+    totalNN+=minD;
+  });
+  const avgNN=totalNN/sample.length;
+
+  // visualise: scatter where point size = how isolated it is
+  const pts2d=Array.from({length:n},()=>({x:R(),y:R(),iso:R()*avgNN}));
+  pts2d.forEach(p=>{
+    const x=m+p.x*pw,y=m+p.y*ph;
+    const isoFrac=Math.min(1,avgNN*(d/2));
+    const alpha=Math.max(.15,1-isoFrac*.7);
+    ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,212,255,${alpha})`;ctx.fill();
+    if(isoFrac>.5){ctx.strokeStyle=`rgba(244,63,94,${isoFrac*.4})`;ctx.lineWidth=.8;ctx.stroke();}
+  });
+
+  // sparsity bar
+  const sparsityPct=Math.min(99,Math.pow(avgNN*10,1.2)*100*d/20);
+  ctx.fillStyle='rgba(255,255,255,.06)';
+  ctx.beginPath();ctx.roundRect(m,m+ph+8,pw,12,4);ctx.fill();
+  const barCol=sparsityPct>70?'#f43f5e':sparsityPct>40?'#f59e0b':'#10b981';
+  ctx.fillStyle=barCol;
+  ctx.beginPath();ctx.roundRect(m,m+ph+8,pw*Math.min(1,sparsityPct/100),12,4);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.35)';ctx.font='10px DM Sans';
+  ctx.fillText('Sparsity',m,m+ph+6);
+  ctx.fillText(`${sparsityPct.toFixed(0)}%`,m+pw-28,m+ph+6);
+
+  document.getElementById('s2Note').textContent=
+    d<=2?`In ${d}D, points are close together. Finding neighbours is easy.`:
+    d<=6?`In ${d}D, gaps are appearing. Avg nearest neighbour is getting farther away.`:
+    d<=12?`In ${d}D, most points are isolated. Machine learning algorithms struggle to find patterns.`:
+    `In ${d}D, points are extremely sparse. You'd need millions more data points to learn anything meaningful.`;
+}
+document.getElementById('s2Canvas').width=document.getElementById('s2Canvas').offsetWidth;step2(1);
+window.addEventListener('resize',()=>step2(document.getElementById('s2Slider').value));
+
+/* ═══════════════════════════════
+   STEP 3 — Distance concentration
+═══════════════════════════════ */
+function step3(d){
+  d=parseInt(d);
+  _r=MCore.seededRNG(300+d);
+  document.getElementById('s3Val').textContent=d;
+  const cv=document.getElementById('s3Canvas');cv.width=cv.offsetWidth;
+  const W=cv.width,H=240,ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  const n=120,pts=Array.from({length:n},()=>Array.from({length:d},()=>R()));
+  const dists=[];
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    let s=0;for(let k=0;k<d;k++)s+=(pts[i][k]-pts[j][k])**2;
+    dists.push(Math.sqrt(s));
+  }
+  const mn=Math.min(...dists),mx=Math.max(...dists),ratio=mx/(mn+1e-9);
+  const bins=36,counts=new Array(bins).fill(0);
+  dists.forEach(v=>{const bi=Math.min(bins-1,Math.floor((v-mn)/(mx-mn+1e-9)*bins));counts[bi]++;});
+  const maxC=Math.max(...counts);
+  const m={t:18,b:40,l:18,r:18},pw=W-m.l-m.r,ph=H-m.t-m.b;
+
+  // gradient
+  const grad=ctx.createLinearGradient(m.l,0,m.l+pw,0);
+  grad.addColorStop(0,'rgba(0,212,255,.75)');grad.addColorStop(1,'rgba(139,92,246,.75)');
+  counts.forEach((c,i)=>{
+    const bh=c/maxC*ph,x=m.l+i/bins*pw,bw=pw/bins-1;
+    ctx.fillStyle=grad;
+    ctx.fillRect(x,m.t+ph-bh,bw,bh);
+  });
+  // axis
+  ctx.fillStyle='rgba(255,255,255,.22)';ctx.font='10px DM Sans';
+  ctx.fillText(mn.toFixed(2),m.l,H-6);ctx.fillText(mx.toFixed(2),m.l+pw-28,H-6);
+  ctx.fillText('← Shorter distances',m.l,H-22);ctx.fillText('Longer →',m.l+pw-60,H-22);
+  // ratio badge
+  const col=ratio>4?'#10b981':ratio>2?'#f59e0b':'#f43f5e';
+  ctx.fillStyle=col;ctx.font='bold 13px DM Sans';
+  ctx.fillText(`Contrast ratio: ${ratio.toFixed(2)}×`,m.l+pw/2-60,m.t+16);
+
+  document.getElementById('s3Note').textContent=
+    d<=3?`d=${d}: Ratio = ${ratio.toFixed(2)}×. Good contrast — nearest and farthest are clearly different.`:
+    d<=15?`d=${d}: Ratio = ${ratio.toFixed(2)}×. Contrast is fading. The histogram is compressing.`:
+    d<=40?`d=${d}: Ratio = ${ratio.toFixed(2)}×. Almost no contrast. "Near" and "far" are nearly identical.`:
+    `d=${d}: Ratio ≈ ${ratio.toFixed(2)}×. The histogram is a single spike. All distances are the same — K-NN is now useless.`;
+}
+document.getElementById('s3Canvas').width=document.getElementById('s3Canvas').offsetWidth;step3(2);
+window.addEventListener('resize',()=>step3(document.getElementById('s3Slider').value));
+
+/* ═══════════════════════════════
+   STEP 4 — Hypersphere volume
+═══════════════════════════════ */
+function gammaHalf(n){
+  // Γ(n/2+1) approximation
+  if(n%2===0){let f=1;for(let i=1;i<=n/2;i++)f*=i;return f;}
+  let f=Math.sqrt(Math.PI);for(let i=1;i<=n;i+=2)f*=i/2;return f;
+}
+function sphereVol(d){return Math.pow(Math.PI,d/2)/gammaHalf(d);}
+
+function step4(d){
+  d=parseInt(d);
+  _r=MCore.seededRNG(400+d);
+  document.getElementById('s4Val').textContent=d;
+  const cv=document.getElementById('s4Canvas');cv.width=cv.offsetWidth;
+  const W=cv.width,H=240,ctx=cv.getContext('2d'),m=24;
+  ctx.clearRect(0,0,W,H);
+
+  const vol=sphereVol(d),cubeVol=Math.pow(2,d);
+  const frac=Math.min(1,vol/cubeVol);
+  const n=500;
+
+  // scatter: colour inside vs outside sphere
+  for(let i=0;i<n;i++){
+    const coords=Array.from({length:d},()=>R()*2-1);
+    const norm=Math.sqrt(coords.reduce((a,v)=>a+v*v,0));
+    const inSphere=norm<=1;
+    const x=m+(coords[0]+1)/2*(W-2*m);
+    const y=m+(coords[1]+1)/2*(H-2*m-30);
+    ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);
+    ctx.fillStyle=inSphere?'rgba(0,212,255,.7)':'rgba(245,158,11,.4)';
+    ctx.fill();
+  }
+
+  // fraction bar
+  const barY=H-28,barH=12,bw=W-2*m;
+  ctx.fillStyle='rgba(255,255,255,.05)';ctx.beginPath();ctx.roundRect(m,barY,bw,barH,4);ctx.fill();
+  ctx.fillStyle='rgba(0,212,255,.6)';ctx.beginPath();ctx.roundRect(m,barY,bw*frac,barH,4);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='10px DM Sans';
+  ctx.fillText(`Inside sphere: ${(frac*100).toFixed(3)}%  |  Corners: ${((1-frac)*100).toFixed(3)}%`,m,barY-4);
+
+  const legend=[{c:'rgba(0,212,255,.8)',t:'Inside sphere'},{c:'rgba(245,158,11,.7)',t:'Corners (outside)'}];
+  legend.forEach((l,i)=>{
+    ctx.fillStyle=l.c;ctx.beginPath();ctx.arc(m+6,H-14+i*0,4,0,Math.PI*2);ctx.fill();
+  });
+
+  document.getElementById('s4Note').textContent=
+    d<=2?`d=${d}: The sphere covers ${(frac*100).toFixed(1)}% of the square. Most data is in the centre.`:
+    d<=5?`d=${d}: The sphere covers ${(frac*100).toFixed(2)}% of the hypercube. The corners are growing.`:
+    d<=10?`d=${d}: The sphere covers only ${(frac*100).toFixed(4)}% of the space. Almost everything is in the corners.`:
+    `d=${d}: The sphere covers essentially 0% of the space. All data concentrates at the edges.`;
+}
+document.getElementById('s4Canvas').width=document.getElementById('s4Canvas').offsetWidth;step4(2);
+window.addEventListener('resize',()=>step4(document.getElementById('s4Slider').value));
+
+/* ═══════════════════════════════
+   DATASET EXPLORER
+═══════════════════════════════ */
+const DATASETS={
+  iris:{
+    name:'Iris-like (synthetic)',colors:['#f43f5e','#00d4ff','#10b981'],
+    gen:()=>{
+      const cls=[{cx:[0,0],spread:.9},{cx:[2,.8],spread:.8},{cx:[3.2,-.6],spread:.85}];
+      return cls.flatMap((c,ci)=>Array.from({length:50},()=>({
+        x:c.cx[0]+(R()-.5)*c.spread*2.2,
+        y:c.cx[1]+(R()-.5)*c.spread*1.8,
+        cls:ci
+      })));
+    }
+  },
+  wine:{
+    name:'Wine-like (synthetic)',colors:['#f59e0b','#8b5cf6','#10b981'],
+    gen:()=>{
+      const cls=[{cx:[-1.5,1],spread:1},{cx:[.5,-.8],spread:.9},{cx:[2.2,.6],spread:.8}];
+      return cls.flatMap((c,ci)=>Array.from({length:45},()=>({
+        x:c.cx[0]+(R()-.5)*c.spread*2.4,
+        y:c.cx[1]+(R()-.5)*c.spread*2,
+        cls:ci
+      })));
+    }
+  },
+  swiss:{
+    name:'Swiss Roll',colors:['#00d4ff','#f59e0b','#f43f5e'],
+    gen:()=>{
+      return Array.from({length:150},(_,i)=>{
+        const t=1.5*Math.PI*(1+2*(i/150));
+        return {x:t*Math.cos(t)/6,y:(R()-.5)*2,cls:Math.min(2,Math.floor(3*i/150)),t};
+      });
+    }
+  },
+  blobs:{
+    name:'Random Blobs',colors:['#f43f5e','#00d4ff','#10b981','#f59e0b'],
+    gen:()=>{
+      const centres=[[-2,2],[2,2],[-2,-2],[2,-2]];
+      return centres.flatMap((c,ci)=>Array.from({length:38},()=>({
+        x:c[0]+(R()-.5)*.9,y:c[1]+(R()-.5)*.9,cls:ci
+      })));
+    }
+  },
+  moons:{
+    name:'Two Moons',colors:['#00d4ff','#f43f5e'],
+    gen:()=>{
+      return Array.from({length:160},(_,i)=>{
+        const t=Math.PI*(i/80);
+        if(i<80)return{x:Math.cos(t)*1.5+(R()-.5)*.3,y:Math.sin(t)*1.5+(R()-.5)*.3,cls:0};
+        return{x:1.5-Math.cos(t)*1.5+(R()-.5)*.3,y:.5-Math.sin(t)*1.5+(R()-.5)*.3,cls:1};
+      });
+    }
+  }
+};
+
+let currentDS='iris',currentDim=2,currentPts=DATASETS.iris.gen();
+
+function setDS(key,btn){
+  document.querySelectorAll('.ds-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentDS=key;_r=MCore.seededRNG(2024);currentPts=DATASETS[key].gen();
+  updateExplorer(document.getElementById('expSlider').value);
+}
+
+function updateExplorer(d){
+  d=parseInt(d);currentDim=d;
+  document.getElementById('expVal').textContent=d;
+  drawExpScatter(d);
+  drawExpDist(d);
+  updateExpMetrics(d);
+}
+
+// Data for the explorer: the 2 informative coordinates + (d-2) pure-noise dimensions of comparable scale.
+function expData(d){
+  const pts=currentPts,rng=MCore.seededRNG(4242+d*31);
+  const sd=a=>{const m=a.reduce((s,v)=>s+v,0)/a.length;return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/a.length)||1;};
+  const sn=(sd(pts.map(p=>p.x))+sd(pts.map(p=>p.y)))/2;
+  return pts.map(p=>{const row=[p.x,p.y].slice(0,Math.min(d,2));for(let k=2;k<d;k++)row.push(MCore.randn(rng)*sn);return row;});
+}
+function expPairDists(X){
+  const dists=[];
+  for(let i=0;i<X.length;i++)for(let j=i+1;j<X.length;j++){let s=0;for(let k=0;k<X[i].length;k++)s+=(X[i][k]-X[j][k])**2;dists.push(Math.sqrt(s));}
+  return dists;
+}
+
+function drawExpScatter(d){
+  const cv=document.getElementById('expCanvas');cv.width=cv.offsetWidth;
+  const W=cv.width,H=280,ctx=cv.getContext('2d'),m=24;
+  ctx.clearRect(0,0,W,H);
+  const ds=DATASETS[currentDS],pts=currentPts;
+  const X=expData(d);
+  // 2-D view: raw coordinates for d<=2, otherwise the top-2 PCA components of the d-dimensional data (REAL projection)
+  const P=d<=2?X.map(r=>[r[0],r.length>1?r[1]:0]):MCore.pca(X,2).projected;
+  const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]);
+  const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
+  const pw=W-2*m,ph=H-2*m-16;
+  const sx=v=>m+(v-xmin)/(xmax-xmin+.001)*pw;
+  const sy=v=>m+ph-(v-ymin)/(ymax-ymin+.001)*ph;
+  P.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),2.8,0,Math.PI*2);
+    ctx.fillStyle=ds.colors[pts[i].cls%ds.colors.length]+(d>5?'88':'cc');
+    ctx.fill();
+  });
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='11px DM Sans';
+  ctx.fillText(`${ds.name} — ${d<=2?'raw 2D view':'top-2 PCA view of '+d+'D data ('+(d-2)+' dims are pure noise)'}`,m,H-4);
+}
+
+function drawExpDist(d){
+  const cv=document.getElementById('expDistCanvas');cv.width=cv.offsetWidth;
+  const W=cv.width,H=280,ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  const dists=expPairDists(expData(d));
+  const mn=Math.min(...dists),mx=Math.max(...dists);
+  const bins=30,counts=new Array(bins).fill(0);
+  dists.forEach(v=>{counts[Math.min(bins-1,Math.floor((v-mn)/(mx-mn+1e-9)*bins))]++;});
+  const maxC=Math.max(...counts);
+  const m={t:20,b:44,l:20,r:20},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  counts.forEach((c,i)=>{
+    const bh=c/maxC*ph,x=m.l+i/bins*pw,bw=pw/bins-1;
+    ctx.fillStyle=`hsla(${200-i/bins*60},80%,60%,.7)`;
+    ctx.fillRect(x,m.t+ph-bh,bw,bh);
+  });
+  const ratio=(mx/(mn+1e-9));
+  ctx.fillStyle='rgba(255,255,255,.25)';ctx.font='11px DM Sans';
+  ctx.fillText(`Min: ${mn.toFixed(3)}`,m.l,H-28);
+  ctx.fillText(`Max: ${mx.toFixed(3)}`,m.l,H-14);
+  ctx.fillText(`Max/min ratio: ${ratio.toFixed(2)}×`,m.l+pw/2-40,H-14);
+}
+
+function updateExpMetrics(d){
+  // All three numbers are MEASURED on the d-dimensional data shown (2 informative dims + noise dims)
+  const X=expData(d),labels=currentPts.map(p=>p.cls);
+  const purity=MCore.knnAccuracy(X,labels,5);
+  const n=X.length;let meanD=0,cnt=0,nnSum=0;
+  for(let i=0;i<n;i++){let nn=Infinity;for(let j=0;j<n;j++){if(i===j)continue;let s=0;for(let k=0;k<X[i].length;k++)s+=(X[i][k]-X[j][k])**2;const dd=Math.sqrt(s);meanD+=dd;cnt++;if(dd<nn)nn=dd;}nnSum+=nn;}
+  meanD/=cnt;const nnRatio=(nnSum/n)/meanD;
+  const dists=expPairDists(X),ratio=Math.max(...dists)/(Math.min(...dists)+1e-9);
+  document.getElementById('mDensity').textContent=(purity*100).toFixed(0)+'%';
+  document.getElementById('mContrast').textContent=ratio.toFixed(2)+'×';
+  document.getElementById('mSparsity').textContent=(nnRatio*100).toFixed(0)+'%';
+  const ds=DATASETS[currentDS];
+  document.getElementById('expInsight').innerHTML=
+    d<=2?`<strong>${ds.name}</strong> in ${d}D: all dimensions carry signal, so neighbours share labels (${(purity*100).toFixed(0)}% of 5-NN votes are right) and the nearest point is much closer than average.`:
+    `<strong>${ds.name}</strong> with ${d-2} noise dimension${d>3?'s':''} added (${d}D total): 5-NN label accuracy is ${(purity*100).toFixed(0)}%, and the nearest neighbour is ${(nnRatio*100).toFixed(0)}% as far as the average point — the closer this gets to 100%, the less &ldquo;near&rdquo; means anything.`;
+}
+
+// init explorer
+const expCv=document.getElementById('expCanvas');expCv.width=expCv.offsetWidth;
+const expDCv=document.getElementById('expDistCanvas');expDCv.width=expDCv.offsetWidth;
+updateExplorer(2);
+window.addEventListener('resize',()=>updateExplorer(document.getElementById('expSlider').value));
+
+/* ═══════════════════════════════
+   QUIZ
+═══════════════════════════════ */
+let cur=0,score=0,done=new Array(6).fill(null);
+function buildProg(){
+  document.getElementById('qProg').innerHTML=Array.from({length:6},(_,i)=>{
+    const cl=done[i]===null?'':(done[i]?'correct':'wrong');
+    return `<div class="q-pip ${cl} ${i===cur?'current':''}"></div>`;
+  }).join('');
+}
+function ans(qi,oi,correct){
+  if(done[qi]!==null)return;
+  done[qi]=correct;if(correct)score++;
+  document.getElementById('qScore').textContent=`Score: ${score} / 6`;
+  const card=document.getElementById(`q${qi}`);
+  card.querySelectorAll('.q-opt').forEach((o,i)=>{o.disabled=true;if(i===oi)o.classList.add(correct?'correct':'wrong');});
+  const fb=document.getElementById(`fb${qi}`);
+  fb.classList.add('show',correct?'fb-c':'fb-w');
+  fb.textContent=(correct?'✅ Correct! ':'❌ Not quite. ')+fb.textContent;
+  buildProg();
+}
+function next(){if(cur<5){document.getElementById(`q${cur}`).classList.remove('active');cur++;document.getElementById(`q${cur}`).classList.add('active');buildProg();}}
+function prev(){if(cur>0){document.getElementById(`q${cur}`).classList.remove('active');cur--;document.getElementById(`q${cur}`).classList.add('active');buildProg();}}
+buildProg();
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>

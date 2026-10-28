@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPR &mdash; Gaussian Process Regression | MANIFOLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060b1a;--surface:rgba(255,255,255,0.03);
+  --border:rgba(255,255,255,0.07);
+  --accent:#00d4ff;--accent2:#10b981;--purple:#8b5cf6;--gold:#f59e0b;--rose:#f43f5e;
+  --text:#dde8f5;--muted:#4e6a84;--soft:#7a9ab8;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden}
+#prog{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:9999;transition:width .06s}
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:14px 40px;background:rgba(6,11,26,.9);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav a{color:var(--soft);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}.nav a:hover{color:var(--accent)}
+.nav-tag{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.1em}
+
+/* Hero */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#hero-cvs{position:absolute;inset:0;width:100%;height:100%}
+.hero-inner{position:relative;z-index:10;text-align:center;padding:0 24px}
+.eyebrow{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:22px}
+.hero-inner h1{font-family:'Playfair Display',serif;font-size:clamp(52px,8vw,106px);font-weight:700;line-height:1.03;background:linear-gradient(130deg,#fff 0%,var(--accent) 55%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:24px}
+.hero-sub{font-size:18px;color:var(--soft);max-width:600px;margin:0 auto 48px;line-height:1.65}
+.hero-scroll{display:flex;align-items:center;gap:8px;justify-content:center;color:var(--muted);font-size:13px;animation:float 2.4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+
+/* Wrap & Sections */
+.wrap{max-width:1100px;margin:0 auto;padding:0 40px}
+.sec{padding:96px 0}
+.sec-hd{text-align:center;margin-bottom:64px}
+.sec-hd h2{font-family:'Playfair Display',serif;font-size:clamp(30px,4vw,46px);font-weight:700;margin-bottom:14px}
+.sec-hd p{color:var(--soft);font-size:16px;max-width:580px;margin:0 auto}
+.divider{height:1px;background:var(--border);max-width:1100px;margin:0 auto}
+
+/* History Timeline */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:grid;grid-template-columns:120px 1fr;gap:0 32px;position:relative;padding-bottom:40px}
+.tl-item:last-child{padding-bottom:0}
+.tl-year{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;padding-top:4px;text-align:right}
+.tl-content{border-left:2px solid rgba(0,212,255,0.2);padding-left:28px;position:relative}
+.tl-content::before{content:'';position:absolute;left:-6px;top:8px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.tl-content h4{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:6px}
+.tl-content p{color:var(--soft);font-size:14px;line-height:1.75}
+.tl-tag{display:inline-block;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:6px;padding:2px 8px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent);margin-bottom:8px}
+
+/* Building blocks */
+.blocks-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+@media(max-width:800px){.blocks-grid{grid-template-columns:1fr}}
+.block-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;position:relative;overflow:hidden}
+.block-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.block-card:nth-child(1)::before{background:var(--accent)}
+.block-card:nth-child(2)::before{background:var(--accent2)}
+.block-card:nth-child(3)::before{background:var(--purple)}
+.block-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:.08em}
+.block-card h3{font-family:'Playfair Display',serif;font-size:19px;margin-bottom:10px}
+.block-card p{color:var(--soft);font-size:14px;line-height:1.75}
+
+/* Intuition canvases */
+.intuition-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:48px}
+@media(max-width:800px){.intuition-grid{grid-template-columns:1fr}}
+.int-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px}
+.int-card h4{font-family:'Playfair Display',serif;font-size:17px;margin-bottom:8px}
+.int-card p{color:var(--soft);font-size:13px;line-height:1.7;margin-bottom:14px}
+.int-cvs{width:100%;border-radius:10px;background:#070d1e;border:1px solid var(--border);display:block}
+.int-btn{margin-top:8px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25);color:var(--accent);padding:7px 16px;border-radius:100px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.int-btn:hover{background:rgba(0,212,255,.2)}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:80px}
+.step-block{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+@media(max-width:900px){.step-block{grid-template-columns:1fr}}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--accent);color:var(--bg);border-radius:50%;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;margin-bottom:16px}
+.step-title{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:14px}
+.step-exp{color:var(--soft);font-size:14.5px;line-height:1.8;margin-bottom:20px}
+.math-block{background:#071420;border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:24px;margin:16px 0}
+.formula{font-family:'JetBrains Mono',monospace;font-size:15px;color:#7dd3fc;text-align:center;padding:12px 8px;border-bottom:1px solid rgba(255,255,255,.05);margin-bottom:16px;letter-spacing:.03em;line-height:2}
+.derivation{font-size:13.5px;color:var(--soft);line-height:1.75}
+.derivation strong{color:var(--accent)}
+.mi{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#7dd3fc;background:rgba(0,212,255,.08);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.deriv-step{margin:10px 0;padding-left:12px;border-left:2px solid rgba(0,212,255,.25);font-size:13px;color:var(--soft)}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);border-radius:100px;padding:7px 16px;font-size:13px;color:var(--accent);margin-top:16px}
+.cvs-wrap{position:relative}
+.step-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid var(--border);display:block}
+.cvs-btn{margin-top:10px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
+.cvs-btn:hover{background:rgba(0,212,255,.2)}
+
+/* Kernel gallery */
+.kernel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+@media(max-width:800px){.kernel-grid{grid-template-columns:1fr}}
+.kernel-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}
+.kernel-card h4{font-size:15px;font-weight:600;margin-bottom:4px}
+.kernel-card .kf{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);background:rgba(0,212,255,.06);padding:6px 10px;border-radius:6px;margin:8px 0;line-height:1.8}
+.kernel-card p{color:var(--soft);font-size:13px;line-height:1.65}
+.kernel-cvs{width:100%;border-radius:8px;background:#070d1e;border:1px solid var(--border);display:block;margin-top:10px}
+
+/* Explorer */
+.explorer-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
+.explorer-hd{margin-bottom:32px}
+.explorer-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
+.explorer-hd p{color:var(--soft);font-size:15px}
+.ex-layout{display:grid;grid-template-columns:1fr 300px;gap:28px;align-items:start}
+@media(max-width:1000px){.ex-layout{grid-template-columns:1fr}}
+#gpr-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid rgba(0,212,255,.15);display:block;cursor:crosshair}
+.gpr-hint{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:8px;text-align:center}
+.ctrl-panel{display:flex;flex-direction:column;gap:14px}
+.ctrl-section{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:18px}
+.ctrl-section h5{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:12px}
+.param-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.param-row label{font-size:12px;color:var(--soft);font-family:'JetBrains Mono',monospace;white-space:nowrap;min-width:72px}
+.param-row input[type=range]{flex:1;accent-color:var(--accent)}
+.param-val{font-size:12px;color:var(--accent);font-family:'JetBrains Mono',monospace;min-width:36px;text-align:right}
+.kernel-btns{display:flex;flex-direction:column;gap:6px}
+.kbtn{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--soft);padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s;text-align:left;font-family:'DM Sans',sans-serif}
+.kbtn:hover{border-color:rgba(0,212,255,.3);color:var(--accent)}
+.kbtn.active{background:rgba(0,212,255,.1);border-color:var(--accent);color:var(--accent)}
+.ex-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.xbtn{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.xbtn:hover{background:rgba(255,255,255,.1)}
+.xbtn.primary{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--accent)}
+.xbtn.primary:hover{background:rgba(0,212,255,.2)}
+.stats-box{background:#080f20;border:1px solid rgba(0,212,255,.12);border-radius:8px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2);line-height:1.9;white-space:pre}
+.legend-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--soft);margin-bottom:5px}
+.legend-swatch{width:20px;height:3px;border-radius:2px}
+
+/* Properties */
+.props-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.props-grid{grid-template-columns:1fr}}
+.prop-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.prop-card h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:12px;font-weight:600}
+.prop-card ul{list-style:none;color:var(--soft);font-size:13.5px;line-height:1.9}
+.prop-card ul li::before{content:'-> ';color:var(--accent)}
+
+/* Quiz */
+.quiz-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
+.quiz-hd{text-align:center;margin-bottom:40px}
+.quiz-hd h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:8px}
+.quiz-hd p{color:var(--soft);font-size:15px}
+.quiz-q{background:#080f20;border:1px solid var(--border);border-radius:12px;padding:28px;margin-bottom:18px;transition:border-color .2s}
+.quiz-q.correct{border-color:var(--accent2)}.quiz-q.incorrect{border-color:var(--rose)}
+.q-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:6px}
+.q-text{font-size:15.5px;font-weight:500;margin-bottom:16px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:580px){.opts{grid-template-columns:1fr}}
+.opt-btn{background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--soft);padding:12px 15px;border-radius:8px;font-size:13.5px;cursor:pointer;transition:all .2s;text-align:left;font-family:'DM Sans',sans-serif;line-height:1.45}
+.opt-btn:hover:not(:disabled){border-color:rgba(0,212,255,.3);color:var(--text)}
+.opt-btn.selected{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.08)}
+.opt-btn.correct-ans{border-color:var(--accent2);color:var(--accent2);background:rgba(16,185,129,.08)}
+.opt-btn.wrong-ans{border-color:var(--rose);color:var(--rose);background:rgba(244,63,94,.08)}
+.feedback{margin-top:12px;font-size:13px;display:none;padding:10px 14px;border-radius:8px}
+.feedback.show-c{display:block;color:var(--accent2);background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2)}
+.feedback.show-w{display:block;color:var(--rose);background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2)}
+.quiz-submit{display:block;margin:28px auto 0;background:var(--accent);color:var(--bg);border:none;padding:13px 40px;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .2s}
+.quiz-submit:hover{opacity:.88}
+.quiz-result{text-align:center;padding:40px;display:none}
+.score-big{font-family:'Playfair Display',serif;font-size:72px;font-weight:700;color:var(--accent)}
+.score-sub{font-size:18px;color:var(--soft);margin-bottom:24px}
+
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s,transform .7s}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.footer{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px;border-top:1px solid var(--border)}
+
+/* ── Theme toggle button ── */
+.theme-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.theme-btn:hover{background:rgba(255,255,255,0.12);border-color:var(--accent,#00d4ff);}
+
+/* ── Light mode ── */
+body.light{
+  --bg:#f0f4ff;
+  --surface:rgba(255,255,255,0.75);--surface2:rgba(255,255,255,0.9);
+  --surface-h:rgba(255,255,255,0.9);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.13);--border-h:rgba(0,0,0,0.13);
+  --text:#0f1b2d;--muted:#5a7080;--soft:#3a5270;
+  --accent:#0099cc;--accent2:#6d28d9;
+  --cyan:#0099cc;--green:#059669;--gold:#d97706;--purple:#6d28d9;--rose:#e11d48;
+  --pca:#0099cc;--tsne:#e11d48;--umap:#059669;--lda:#6d28d9;--iso:#d97706;
+}
+body.light .nav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light .topnav{background:rgba(240,244,255,0.97) !important;border-bottom-color:rgba(0,0,0,0.08);}
+body.light #bg{opacity:0.05 !important;}
+
+</style>
+<script src="guard.js"></script>
+<script src="manifold-core.js"></script>
+<style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+</head>
+<body>
+<div id="prog"></div>
+<nav class="nav">
+  <a href="dashboard.html">&larr; Dashboard</a>
+  <span class="nav-tag">06 &middot; GPR</span>
+  <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="hero-cvs"></canvas>
+  <div class="hero-inner">
+    <span class="eyebrow">Section 06 &mdash; Gaussian Process Regression</span>
+    <h1>Gaussian<br>Process<br>Regression</h1>
+    <p class="hero-sub">Instead of fitting a single curve through data, GPR fits a <em>probability distribution over all possible curves</em> &mdash; and uses it to give predictions with built-in uncertainty estimates.</p>
+    <div class="hero-scroll">Scroll to explore &darr;</div>
+  </div>
+</section>
+
+<!-- HISTORY -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">The Origin Story</span>
+      <h2>Where Did GPR Come From?</h2>
+      <p>Gaussian Processes were not invented by machine learning researchers. They emerged from a completely different field &mdash; and the journey to modern ML took 50 years.</p>
+    </div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-year">1951</div>
+        <div class="tl-content">
+          <div class="tl-tag">MINING &middot; SOUTH AFRICA</div>
+          <h4>Danie Krige and the Gold Mine Problem</h4>
+          <p>A young South African mining engineer named <strong>Danie Krige</strong> had a practical problem: given a few drill holes revealing gold concentrations at specific locations underground, how do you estimate the concentration everywhere else &mdash; and how confident should you be in that estimate? Krige noticed that nearby locations tend to have similar concentrations, and that this "spatial correlation" could be used to make better estimates than simple averaging. His empirical method became the foundation of the field.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-year">1960s</div>
+        <div class="tl-content">
+          <div class="tl-tag">GEOSTATISTICS &middot; FRANCE</div>
+          <h4>Matheron Formalises "Kriging"</h4>
+          <p>French mathematician <strong>Georges Matheron</strong> took Krige's empirical observations and built a rigorous mathematical framework around them. He named the technique <em>kriging</em> in Krige's honour. The key insight was to model spatial data as a realisation of a <strong>stochastic process</strong> &mdash; a random function &mdash; whose correlation structure could be inferred from the data. Kriging became the standard tool in geology, environmental science, and hydrology.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-year">1978&ndash;1995</div>
+        <div class="tl-content">
+          <div class="tl-tag">STATISTICS &middot; BAYESIAN THEORY</div>
+          <h4>O'Hagan and the Bayesian Connection</h4>
+          <p>Statistician <strong>Anthony O'Hagan</strong> realised that Krige's spatial interpolation was mathematically identical to Bayesian inference over function spaces. If you place a Gaussian prior over functions (saying "I expect smooth functions a priori") and observe data, the posterior is also Gaussian and computable in closed form. This was a profound unification &mdash; kriging and Bayesian regression were the same thing seen from different angles.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-year">1996&ndash;1998</div>
+        <div class="tl-content">
+          <div class="tl-tag">MACHINE LEARNING &middot; MIT / CAMBRIDGE</div>
+          <h4>Williams &amp; Rasmussen Bring GPR to ML</h4>
+          <p><strong>Christopher Williams</strong> and <strong>Carl Edward Rasmussen</strong> introduced Gaussian Processes to the machine learning community, showing that neural networks with infinitely many hidden units converge to GPs. Their 2006 textbook <em>Gaussian Processes for Machine Learning</em> (freely available online) became the definitive reference. They showed GPR was competitive with neural networks on many tasks, with the crucial advantage of <strong>calibrated uncertainty estimates</strong>.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-year">Today</div>
+        <div class="tl-content">
+          <div class="tl-tag">MODERN ML &middot; EVERYWHERE</div>
+          <h4>From Robotics to Drug Discovery</h4>
+          <p>GPR is now a cornerstone technique in <strong>Bayesian optimisation</strong> (used to tune hyperparameters in deep learning, design experiments, and find optimal drug candidates), robotics (safe exploration under uncertainty), climate modelling, astrophysics, and any field where you need not just a prediction but a <strong>reliable measure of how confident that prediction is</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- BUILDING BLOCKS -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">Before the Math</span>
+      <h2>Three Ideas You Need First</h2>
+      <p>GPR builds on three concepts. Understand these and the math will make complete sense.</p>
+    </div>
+    <div class="blocks-grid">
+      <div class="block-card">
+        <div class="block-num">BUILDING BLOCK 01</div>
+        <h3>A Gaussian Distribution</h3>
+        <p>A bell curve over a <em>single number</em>. Instead of saying "the answer is 5," it says "the answer is probably around 5, with this much uncertainty." Defined entirely by a mean (centre) and variance (spread). Two Gaussian variables together form a 2D bell surface.</p>
+      </div>
+      <div class="block-card">
+        <div class="block-num">BUILDING BLOCK 02</div>
+        <h3>A Multivariate Gaussian</h3>
+        <p>A Gaussian over a <em>vector</em> of numbers. Instead of one bell curve, it's a cloud in d-dimensional space, defined by a mean <em>vector</em> and a covariance <em>matrix</em>. The covariance matrix encodes not just how uncertain each variable is, but how they move together.</p>
+      </div>
+      <div class="block-card">
+        <div class="block-num">BUILDING BLOCK 03</div>
+        <h3>A Gaussian Process</h3>
+        <p>A Gaussian over an <em>infinite-dimensional vector</em> &mdash; i.e., over a <em>function</em>. Any finite collection of function values has a joint Gaussian distribution. Instead of a mean and covariance for numbers, we have a mean <em>function</em> and a covariance <em>function</em> (kernel). It's a probability distribution whose samples are entire curves.</p>
+      </div>
+    </div>
+
+    <!-- Intuition canvases -->
+    <div class="intuition-grid">
+      <div class="int-card">
+        <h4>Prior: Sampling from a GP</h4>
+        <p>Before seeing any data, the GP is a distribution over all possible smooth functions. Each curve below is one sample &mdash; a plausible function drawn from the prior. Press the button to draw new samples.</p>
+        <canvas id="prior-cvs" class="int-cvs" height="200"></canvas>
+        <button class="int-btn" onclick="drawPriorSamples()">&#9654; Draw New Samples</button>
+      </div>
+      <div class="int-card">
+        <h4>Posterior: After Seeing Data</h4>
+        <p>Once we observe some data points (black dots), the GP posterior is constrained to pass through them. The mean prediction (cyan) and 95% confidence band (shaded) emerge automatically.</p>
+        <canvas id="posterior-cvs" class="int-cvs" height="200"></canvas>
+        <button class="int-btn" onclick="drawPosteriorDemo()">&#9654; Add More Points</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- MATH STEPS -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-hd reveal">
+      <span class="eyebrow">The Math</span>
+      <h2>Five Steps of GPR</h2>
+      <p>From defining what a GP is to computing predictions with uncertainty &mdash; every formula derived from scratch.</p>
+    </div>
+    <div class="steps">
+
+      <!-- STEP 1 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">1</div>
+          <div class="step-title">Define the Prior: f ~ GP(m, k)</div>
+          <div class="step-exp">We start by asserting that the unknown function f we want to learn is a sample from a Gaussian Process. This is our <em>prior belief</em> about what the function looks like before seeing any data. The GP is fully specified by two things: a mean function m(x) and a covariance (kernel) function k(x, x').</div>
+          <div class="math-block">
+            <div class="formula">f(x) ~ GP(m(x), k(x, x'))<br><br>Any finite set of function values:<br>[f(x_1), ..., f(x_n)] ~ N(m_vec, K)</div>
+            <div class="derivation">
+              <strong>What does this actually mean?</strong><br><br>
+              A GP is defined by the requirement that <em>any finite collection of function evaluations</em> follows a joint Gaussian distribution. If I pick any n input points x_1, ..., x_n, then:<br>
+              <div class="deriv-step"><span class="mi">m_vec[i] = m(x_i)</span> &mdash; the mean at each point (usually 0)</div>
+              <div class="deriv-step"><span class="mi">K[i,j] = k(x_i, x_j)</span> &mdash; the covariance between f(x_i) and f(x_j)</div>
+              <strong>Why Gaussian?</strong><br>
+              Because Gaussians are closed under conditioning: the posterior after observing data is also Gaussian, giving a closed-form solution. Any other distribution family would require approximate inference (e.g. MCMC).
+              <br><br>
+              <strong>The mean function m(x):</strong> usually set to 0 or a constant. GPR can still model non-zero mean functions through the kernel &mdash; the mean function just sets the baseline.
+            </div>
+          </div>
+          <span class="pill">&#128161; The GP prior encodes our belief about function smoothness before seeing data</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs1" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(1)">&#9654; Sample from Prior</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">2</div>
+          <div class="step-title">Choose the Kernel k(x, x')</div>
+          <div class="step-exp">The kernel function k(x, x') is the heart of GPR. It measures how correlated f(x) and f(x') are &mdash; how much knowing the function value at x tells us about the value at x'. The choice of kernel encodes our assumption about the smoothness and structure of the unknown function. The most common kernel is the Radial Basis Function (RBF), also called the Squared Exponential.</div>
+          <div class="math-block">
+            <div class="formula">k_RBF(x, x') = sigma_f^2 * exp(-(x-x')^2 / (2*l^2))<br><br>Parameters: sigma_f (signal scale), l (length-scale)</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              The RBF kernel comes from assuming the function is infinitely differentiable (perfectly smooth). Its form is derived from the Gaussian density applied to the difference (x - x'):<br>
+              <div class="deriv-step"><span class="mi">k(x, x') = sigma_f^2 * exp(-(x-x')^2 / (2*l^2))</span></div>
+              <strong>Reading the parameters:</strong>
+              <div class="deriv-step"><span class="mi">l</span> = length-scale: how far apart x and x' can be while still being correlated. Large l = smooth, slowly varying function. Small l = wiggly, fast-varying function.</div>
+              <div class="deriv-step"><span class="mi">sigma_f^2</span> = signal variance: the overall amplitude of the function. Large sigma_f = function can take large values.</div>
+              <strong>A valid kernel must produce positive semi-definite covariance matrices K</strong> for any set of input points &mdash; this ensures the Gaussian distribution is well-defined. The RBF satisfies this by construction (it's a Gram matrix of Gaussian features).
+            </div>
+          </div>
+          <span class="pill">&#128161; The length-scale l controls how "wiggly" your function prior is</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs2" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(2)">&#9654; Compare Length Scales</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">3</div>
+          <div class="step-title">Build the Covariance Matrices</div>
+          <div class="step-exp">Given n training points X and m test points X*, we compute three covariance matrices by applying the kernel to every pair of points. These matrices encode all the correlation information the GP needs: how training points relate to each other, how test points relate to training points, and how test points relate to each other.</div>
+          <div class="math-block">
+            <div class="formula">K     = k(X, X)    shape: n x n  (train-train)<br>K*    = k(X*, X)   shape: m x n  (test-train)<br>K**   = k(X*, X*)  shape: m x m  (test-test)<br>K_y   = K + sigma_n^2 * I  (noisy training)</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              The joint distribution of training outputs y and test outputs f* is Gaussian:<br>
+              <div class="deriv-step"><span class="mi">[[y], [f*]] ~ N(0, [[K_y, K*^T], [K*, K**]])</span></div>
+              <span class="mi">K[i,j] = k(x_i, x_j)</span> for all training pairs.<br>
+              <span class="mi">K*[i,j] = k(x*_i, x_j)</span> links test to training points.<br>
+              <span class="mi">K**[i,j] = k(x*_i, x*_j)</span> is the test-test covariance.<br><br>
+              <strong>The noise term:</strong><br>
+              <div class="deriv-step"><span class="mi">y = f(X) + epsilon</span> where <span class="mi">epsilon ~ N(0, sigma_n^2 I)</span></div>
+              <div class="deriv-step">Adding observation noise adds <span class="mi">sigma_n^2 * I</span> to the diagonal of K, giving K_y.</div>
+              This makes K_y invertible and represents our assumption that measurements have independent Gaussian noise.
+            </div>
+          </div>
+          <span class="pill">&#128161; K_y = K + noise*I is always invertible &mdash; ensuring a unique solution</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs3" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(3)">&#9654; Show Covariance Matrices</button>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">4</div>
+          <div class="step-title">Condition on Data &mdash; The Posterior</div>
+          <div class="step-exp">This is the central operation of GPR. We know the joint Gaussian distribution of training outputs y and test outputs f*. By conditioning on the observed y (using the Gaussian conditioning formula), we get the posterior distribution over f* &mdash; the updated belief about the function after seeing data. This is where GPR's power lies: the posterior is still Gaussian and computable in closed form.</div>
+          <div class="math-block">
+            <div class="formula">f* | X, y, X*  ~  N(mu*, Sigma*)<br><br>mu*    = K* (K + sigma_n^2 I)^{-1} y<br>Sigma* = K** - K* (K + sigma_n^2 I)^{-1} K*^T</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              This uses the <em>Gaussian conditioning lemma</em>: if [a, b] ~ N([mu_a, mu_b], [[A, C], [C^T, B]]), then:<br>
+              <div class="deriv-step"><span class="mi">a | b ~ N(mu_a + C B^{-1}(b - mu_b), A - C B^{-1} C^T)</span></div>
+              Applying this to our joint distribution with mu=0:<br>
+              <div class="deriv-step"><span class="mi">a = f*</span>, <span class="mi">b = y</span>, <span class="mi">C = K*</span>, <span class="mi">B = K_y</span>, <span class="mi">A = K**</span></div>
+              Posterior mean: <span class="mi">mu* = K* K_y^{-1} y</span><br>
+              Posterior covariance: <span class="mi">Sigma* = K** - K* K_y^{-1} K*^T</span><br><br>
+              <strong>Reading the posterior mean:</strong><br>
+              <div class="deriv-step"><span class="mi">K* K_y^{-1}</span> is the "weighting matrix" &mdash; how much each training point contributes to the prediction at each test point</div>
+              <div class="deriv-step"><span class="mi">K* K_y^{-1} y</span> is a weighted interpolation of the training outputs</div>
+              <strong>Reading the posterior variance:</strong><br>
+              <div class="deriv-step"><span class="mi">K**</span>: prior uncertainty at test points</div>
+              <div class="deriv-step"><span class="mi">K* K_y^{-1} K*^T</span>: uncertainty <em>removed</em> by observing training data</div>
+              <div class="deriv-step">Where training data is dense: large reduction in uncertainty. Where sparse: small reduction.</div>
+            </div>
+          </div>
+          <span class="pill">&#128161; Uncertainty is automatically small near data and large far from it</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs4" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(4)">&#9654; Animate Conditioning</button>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="step-block reveal">
+        <div>
+          <div class="step-num">5</div>
+          <div class="step-title">Make Predictions with Uncertainty</div>
+          <div class="step-exp">From the posterior, we extract everything we need: the mean prediction at each test point, and the standard deviation (square root of the diagonal of Sigma*) as the uncertainty estimate. The 95% confidence band is mean &plusmn; 1.96 * std. This uncertainty is not just a number &mdash; it reflects exactly how much the training data constrains the function at each location.</div>
+          <div class="math-block">
+            <div class="formula">Prediction at x*:<br>  mean:  mu*(x*)  =  k(x*, X) K_y^{-1} y<br>  std:   s(x*)    =  sqrt(k(x*,x*) - k(x*,X) K_y^{-1} k(X,x*))<br><br>95% band: mu*(x*) +/- 1.96 * s(x*)</div>
+            <div class="derivation">
+              <strong>Where does this come from?</strong><br><br>
+              At a single test point x*, the posterior is univariate Gaussian N(mu*, sigma*^2) where:<br>
+              <div class="deriv-step"><span class="mi">mu* = k(x*, X) K_y^{-1} y</span> &mdash; the posterior mean at x*</div>
+              <div class="deriv-step"><span class="mi">sigma*^2 = k(x*, x*) - k(x*, X) K_y^{-1} k(X, x*)</span> &mdash; the posterior variance</div>
+              The posterior variance has a beautiful interpretation:<br>
+              <div class="deriv-step"><span class="mi">k(x*, x*)</span> = prior variance (maximum possible uncertainty)</div>
+              <div class="deriv-step"><span class="mi">k(x*, X) K_y^{-1} k(X, x*)</span> = variance explained by training data</div>
+              <div class="deriv-step">Difference = remaining uncertainty after conditioning</div>
+              <strong>Key property: at training points (with no noise), sigma* = 0.</strong> The GP interpolates perfectly. With noise, it smooths through the training points instead.
+            </div>
+          </div>
+          <span class="pill">&#128161; Uncertainty collapses to zero at noiseless training points &mdash; GPR interpolates exactly</span>
+        </div>
+        <div class="cvs-wrap">
+          <canvas id="cvs5" class="step-cvs"></canvas>
+          <button class="cvs-btn" onclick="animStep(5)">&#9654; Show Uncertainty Band</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- KERNEL GALLERY -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">Kernel Reference</span>
+      <h2>Three Common Kernels</h2>
+      <p>The kernel is the most important design choice in GPR. It encodes your assumption about the function's shape.</p>
+    </div>
+    <div class="kernel-grid">
+      <div class="kernel-card">
+        <h4>RBF / Squared Exponential</h4>
+        <div class="kf">k(x,x') = sf^2 * exp(-(x-x')^2 / (2*l^2))</div>
+        <canvas id="k-rbf" class="kernel-cvs" height="120"></canvas>
+        <p>Infinitely differentiable. Produces very smooth functions. Good default choice when you expect a smooth underlying signal.</p>
+      </div>
+      <div class="kernel-card">
+        <h4>Mat&eacute;rn 5/2</h4>
+        <div class="kf">k(x,x') = sf^2*(1+sqrt(5)*r/l+5r^2/(3l^2))*exp(-sqrt(5)*r/l)</div>
+        <canvas id="k-matern" class="kernel-cvs" height="120"></canvas>
+        <p>Twice differentiable. Less smooth than RBF. More realistic for physical processes that are not perfectly smooth. Popular in Bayesian optimisation.</p>
+      </div>
+      <div class="kernel-card">
+        <h4>Periodic</h4>
+        <div class="kf">k(x,x') = sf^2 * exp(-2*sin^2(pi*|x-x'|/p) / l^2)</div>
+        <canvas id="k-per" class="kernel-cvs" height="120"></canvas>
+        <p>Produces periodic functions with period p. Use when you know the signal repeats (daily temperature, seasonal trends, heartbeats).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- INTERACTIVE EXPLORER -->
+<section class="sec">
+  <div class="wrap">
+    <div class="explorer-wrap reveal">
+      <div class="explorer-hd">
+        <span class="eyebrow">Interactive Demo</span>
+        <h2>Build Your Own GP</h2>
+        <p><strong>Click anywhere on the canvas to add data points.</strong> The GP updates instantly, showing how the posterior mean and uncertainty change as you add more evidence.</p>
+      </div>
+      <div class="ex-layout">
+        <div>
+          <canvas id="gpr-cvs" height="380"></canvas>
+          <p class="gpr-hint">&#128161; Click to add points &mdash; right-click to remove the last one</p>
+          <div class="ex-btns">
+            <button class="xbtn primary" onclick="clearPoints()">Clear all</button>
+            <button class="xbtn" onclick="addPreset('smooth')">Sine wave preset</button>
+            <button class="xbtn" onclick="addPreset('noisy')">Noisy data preset</button>
+            <button class="xbtn" onclick="addPreset('gap')">Data gap preset</button>
+            <button class="xbtn" onclick="drawPriorMode()">Show prior samples</button>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:16px;flex-wrap:wrap">
+            <div class="legend-row"><div class="legend-swatch" style="background:#00d4ff"></div> Posterior mean</div>
+            <div class="legend-row"><div class="legend-swatch" style="background:rgba(0,212,255,0.2);height:14px;width:20px;border-radius:2px"></div> 95% band of the latent f (new observations also add sn&sup2;)</div>
+            <div class="legend-row"><div class="legend-swatch" style="background:rgba(0,212,255,0.15);height:1px;margin-top:6px"></div> Prior samples</div>
+            <div class="legend-row"><div style="width:8px;height:8px;border-radius:50%;background:#fff;margin-top:4px"></div> &nbsp;Data points</div>
+          </div>
+        </div>
+        <div class="ctrl-panel">
+          <div class="ctrl-section">
+            <h5>Kernel</h5>
+            <div class="kernel-btns">
+              <button class="kbtn active" id="k-rbf-btn" onclick="setKernel('rbf')">RBF (Smooth)</button>
+              <button class="kbtn" id="k-mat-btn" onclick="setKernel('matern')">Matern 5/2 (Rough)</button>
+              <button class="kbtn" id="k-per-btn" onclick="setKernel('periodic')">Periodic</button>
+            </div>
+          </div>
+          <div class="ctrl-section">
+            <h5>Kernel Parameters</h5>
+            <div class="param-row">
+              <label>Length l:</label>
+              <input type="range" id="sl-l" min="1" max="50" value="15" oninput="onParamChange()">
+              <span class="param-val" id="vl-l">0.30</span>
+            </div>
+            <div class="param-row">
+              <label>Scale sf:</label>
+              <input type="range" id="sl-sf" min="1" max="30" value="10" oninput="onParamChange()">
+              <span class="param-val" id="vl-sf">1.00</span>
+            </div>
+            <div class="param-row" id="period-row" style="display:none">
+              <label>Period p:</label>
+              <input type="range" id="sl-p" min="5" max="50" value="20" oninput="onParamChange()">
+              <span class="param-val" id="vl-p">0.40</span>
+            </div>
+          </div>
+          <div class="ctrl-section">
+            <h5>Observation Noise</h5>
+            <div class="param-row">
+              <label>Noise sn:</label>
+              <input type="range" id="sl-sn" min="0" max="20" value="3" oninput="onParamChange()">
+              <span class="param-val" id="vl-sn">0.06</span>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:4px">High noise = GP smooths through points. Zero noise = GP interpolates exactly.</p>
+            <button class="cvs-btn" style="margin-top:8px" onclick="optimiseHyper()">&#9881; Fit l, sf, sn (max log marginal likelihood)</button>
+            <label style="display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted);margin-top:8px;cursor:pointer"><input type="checkbox" onchange="setCenter(this.checked)"> Centre y (subtract mean) &mdash; otherwise the prior mean is 0</label>
+          </div>
+          <div class="ctrl-section">
+            <h5>Live Stats</h5>
+            <div class="stats-box" id="gpr-stats">No data points yet.\nAdd points by clicking\non the canvas.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROPERTIES -->
+<section class="sec reveal">
+  <div class="wrap">
+    <div class="sec-hd">
+      <span class="eyebrow">Reference</span>
+      <h2>Key Properties of GPR</h2>
+    </div>
+    <div class="props-grid">
+      <div class="prop-card">
+        <h4>&#10003; Strengths</h4>
+        <ul>
+          <li>Provides calibrated uncertainty estimates automatically</li>
+          <li>Works extremely well with small datasets</li>
+          <li>Flexible: kernel encodes domain knowledge</li>
+          <li>Exact closed-form posterior (no approximation needed)</li>
+          <li>Naturally handles noisy observations</li>
+          <li>Theoretically principled (Bayesian framework)</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>&#10007; Limitations</h4>
+        <ul>
+          <li>Scales as O(n^3) &mdash; slow for large datasets (&gt;10k points)</li>
+          <li>Kernel choice requires domain knowledge or hyperparameter tuning</li>
+          <li>Struggles with high-dimensional inputs without structure</li>
+          <li>Predictions can be over-confident if the kernel is wrong</li>
+          <li>Memory: stores n&times;n covariance matrix</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>&#8987; When to Use GPR</h4>
+        <ul>
+          <li>Small to medium datasets (under ~5000 points)</li>
+          <li>When uncertainty quantification is critical</li>
+          <li>Bayesian optimisation (tuning hyperparameters)</li>
+          <li>Scientific data with known physical structure (use matching kernel)</li>
+          <li>Time series with known periodicity</li>
+        </ul>
+      </div>
+      <div class="prop-card">
+        <h4>&#127758; Real-World Uses</h4>
+        <ul>
+          <li>Hyperparameter tuning in deep learning (Google Vizier)</li>
+          <li>Drug discovery &mdash; optimising molecular properties</li>
+          <li>Geostatistics (original use &mdash; interpolating spatial data)</li>
+          <li>Climate science &mdash; temperature field reconstruction</li>
+          <li>Robotics &mdash; safe exploration under uncertainty</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- QUIZ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="quiz-wrap reveal">
+      <div class="quiz-hd">
+        <span class="eyebrow">Test Yourself</span>
+        <h2>Quick Quiz</h2>
+        <p>Seven questions on GPR &mdash; from the historical origin to the posterior formula and kernel choices.</p>
+      </div>
+      <div id="quiz-container"></div>
+      <button class="quiz-submit" id="quiz-sub" onclick="submitQuiz()">Submit Answers</button>
+      <div class="quiz-result" id="quiz-result">
+        <div class="score-big" id="score-num">0/7</div>
+        <div class="score-sub" id="score-lbl"></div>
+        <button class="quiz-submit" onclick="resetQuiz()">Try Again</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">
+  <div style="margin-bottom:16px">
+    <a href="dashboard.html" style="color:var(--soft);text-decoration:none;margin-right:32px">&larr; Dashboard</a>
+    <a href="section-lda.html" style="color:var(--soft);text-decoration:none;margin-right:32px">LDA</a>
+  </div>
+  MANIFOLD &middot; Section 06 &middot; Gaussian Process Regression
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   UTILITY
+════════════════════════════════════════ */
+function seededRNG(seed){
+  var s=seed>>>0;
+  return function(){s=Math.imul(1664525,s)+1013904223>>>0;return s/4294967296;};
+}
+function randn(rng){
+  var u=Math.max(rng(),1e-10),v=rng();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function eio(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+
+/* ════════════════════════════════════════
+   GPR MATH (exact, pure JS)
+════════════════════════════════════════ */
+// Kernels
+function kRBF(x1,x2,l,sf){
+  var d=x1-x2;
+  return sf*sf*Math.exp(-d*d/(2*l*l));
+}
+function kMatern52(x1,x2,l,sf){
+  var r=Math.abs(x1-x2);
+  var s=Math.sqrt(5)*r/l;
+  return sf*sf*(1+s+s*s/3)*Math.exp(-s);
+}
+function kPeriodic(x1,x2,l,sf,p){
+  var r=Math.abs(x1-x2);
+  var s=Math.sin(Math.PI*r/p);
+  return sf*sf*Math.exp(-2*s*s/(l*l));
+}
+
+function getKernel(type,l,sf,p){
+  if(type==='matern')return function(a,b){return kMatern52(a,b,l,sf);};
+  if(type==='periodic')return function(a,b){return kPeriodic(a,b,l,sf,p);};
+  return function(a,b){return kRBF(a,b,l,sf);};
+}
+
+// Build covariance matrix from two arrays of x values
+function buildK(xs1,xs2,kfn){
+  var n1=xs1.length,n2=xs2.length;
+  var K=[];
+  for(var i=0;i<n1;i++){
+    K[i]=[];
+    for(var j=0;j<n2;j++)K[i][j]=kfn(xs1[i],xs2[j]);
+  }
+  return K;
+}
+
+// Cholesky decomposition of a positive definite matrix
+function cholesky(A){
+  // Strict Cholesky; if the matrix is numerically not positive-definite, add growing jitter instead of
+  // clamping pivots (which silently produced wrong-but-plausible output).
+  var n=A.length,jit=0,L=MCore.cholesky(A),tr=0,i;
+  for(i=0;i<n;i++)tr+=A[i][i];
+  var base=Math.max(tr/Math.max(n,1),1e-12);
+  var tries=[1e-10,1e-8,1e-6,1e-4,1e-2];
+  for(var t=0;!L&&t<tries.length;t++){
+    jit=tries[t]*base;
+    L=MCore.cholesky(A.map(function(r,ii){var c=r.slice();c[ii]+=jit;return c;}));
+  }
+  if(!L)throw new Error('Kernel matrix is not positive definite');
+  return L;
+}
+
+// Solve L*x = b (forward substitution, L lower triangular)
+function fwdSolve(L,b){
+  var n=b.length,x=Array(n).fill(0);
+  for(var i=0;i<n;i++){
+    var s=b[i];
+    for(var j=0;j<i;j++)s-=L[i][j]*x[j];
+    x[i]=s/L[i][i];
+  }
+  return x;
+}
+
+// Solve L^T*x = b (back substitution)
+function bwdSolve(L,b){
+  var n=b.length,x=Array(n).fill(0);
+  for(var i=n-1;i>=0;i--){
+    var s=b[i];
+    for(var j=i+1;j<n;j++)s-=L[j][i]*x[j];
+    x[i]=s/L[i][i];
+  }
+  return x;
+}
+
+// Core GPR: given training points (xs, ys) and test points (xstar), return {mean, variance}
+var GPR_CENTER=false;   // optional: subtract mean(y) before fitting (zero-mean prior is otherwise assumed)
+function computeGPR(xs,ys,xstar,kfn,sn){
+  var n=xs.length,m=xstar.length;
+  if(n===0){
+    // Prior only
+    var priorMean=Array(m).fill(0);
+    var priorVar=xstar.map(function(x){return kfn(x,x);});
+    return{mean:priorMean,std:priorVar.map(Math.sqrt),samples:[],lml:NaN};
+  }
+  var ym=0;if(GPR_CENTER){for(var q=0;q<n;q++)ym+=ys[q];ym/=n;}
+  var yc=ys.map(function(v){return v-ym;});
+
+  // K_y = K(X,X) + sn^2 * I
+  var Ky=buildK(xs,xs,kfn);
+  for(var i=0;i<n;i++)Ky[i][i]+=sn*sn+1e-9;
+  var L=cholesky(Ky);
+
+  // alpha = K_y^{-1} y via Cholesky: solve L*L^T*alpha = y
+  var v1=fwdSolve(L,yc);
+  var alpha=bwdSolve(L,v1);
+
+  // log marginal likelihood:  -1/2 y^T K_y^{-1} y - sum log L_ii - n/2 log(2 pi)
+  var lml=-0.5*yc.reduce(function(s,v,j){return s+v*alpha[j];},0)-0.5*n*Math.log(2*Math.PI);
+  for(var di=0;di<n;di++)lml-=Math.log(L[di][di]);
+
+  var Kstar=buildK(xstar,xs,kfn);
+  var Kstarstar=xstar.map(function(x){return kfn(x,x);});
+  var mean=Array(m).fill(0),variance=Array(m).fill(0);
+  for(var i2=0;i2<m;i2++){
+    for(var j=0;j<n;j++)mean[i2]+=Kstar[i2][j]*alpha[j];
+    mean[i2]+=ym;
+    var vi=fwdSolve(L,Kstar[i2]);
+    var vtv=vi.reduce(function(s,x){return s+x*x;},0);
+    variance[i2]=Math.max(0,Kstarstar[i2]-vtv);
+  }
+  return{mean:mean,std:variance.map(Math.sqrt),lml:lml};
+}
+
+// Fit (l, sf, sn[, p]) by maximising the log marginal likelihood (coordinate ascent over the slider grid, 4 starts)
+function optimiseHyper(){
+  var xs=GPR_DATA.map(function(p){return p.x;}),ys=GPR_DATA.map(function(p){return p.y;});
+  var box=document.getElementById('gpr-stats');
+  if(xs.length<3){box.textContent='Add at least 3 points,\nthen fit hyperparameters.';return;}
+  var per=GPR_KERNEL==='periodic';
+  var R={l:[1,50],sf:[1,30],sn:[1,20],p:[5,50]},keys=per?['l','sf','sn','p']:['l','sf','sn'];
+  function score(raw){
+    var kfn=buildKfn({l:raw.l/50,sf:raw.sf/10,p:raw.p/50});
+    try{return computeGPR(xs,ys,[0],kfn,raw.sn/50).lml;}catch(e){return -Infinity;}
+  }
+  var starts=[{l:15,sf:10,sn:3,p:20},{l:30,sf:10,sn:6,p:20},{l:5,sf:10,sn:2,p:20},{l:+document.getElementById('sl-l').value,sf:+document.getElementById('sl-sf').value,sn:Math.max(1,+document.getElementById('sl-sn').value),p:+document.getElementById('sl-p').value}];
+  var best=null,bestS=-Infinity;
+  starts.forEach(function(cur){
+    var cs=score(cur);
+    for(var pass=0;pass<12;pass++){
+      var moved=false;
+      keys.forEach(function(k){
+        var bv=cur[k],bs=cs;
+        for(var v=R[k][0];v<=R[k][1];v++){var t=Object.assign({},cur);t[k]=v;var sc=score(t);if(sc>bs+1e-9){bs=sc;bv=v;}}
+        if(bv!==cur[k]){cur[k]=bv;cs=bs;moved=true;}
+      });
+      if(!moved)break;
+    }
+    if(cs>bestS){bestS=cs;best=Object.assign({},cur);}
+  });
+  document.getElementById('sl-l').value=best.l;document.getElementById('sl-sf').value=best.sf;document.getElementById('sl-sn').value=best.sn;
+  if(per)document.getElementById('sl-p').value=best.p;
+  onParamChange();
+}
+function setCenter(on){GPR_CENTER=!!on;renderGPR();}
+
+// Sample from GP prior using Cholesky
+function sampleGP(xs,kfn,rng,numSamples){
+  var n=xs.length;
+  var K=buildK(xs,xs,kfn);
+  for(var i=0;i<n;i++)K[i][i]+=1e-6;
+  var L=cholesky(K);
+  var samples=[];
+  for(var s=0;s<numSamples;s++){
+    var z=Array.from({length:n},function(){return randn(rng);});
+    var f=Array(n).fill(0);
+    for(var i2=0;i2<n;i2++)for(var j=0;j<=i2;j++)f[i2]+=L[i2][j]*z[j];
+    samples.push(f);
+  }
+  return samples;
+}
+
+/* ════════════════════════════════════════
+   CANVAS HELPERS
+════════════════════════════════════════ */
+function clearCanvas(cvs,ctx){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  ctx.fillStyle='#070d1e';
+  ctx.fillRect(0,0,cvs.width,cvs.height);
+}
+
+function drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax){
+  var cW=W-pl-pr,cH=H-pt-pb;
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+  for(var gi=0;gi<=5;gi++){
+    ctx.beginPath();ctx.moveTo(pl+gi/5*cW,pt);ctx.lineTo(pl+gi/5*cW,H-pb);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pl,pt+gi/5*cH);ctx.lineTo(W-pl,pt+gi/5*cH);ctx.stroke();
+  }
+  // y=0 line
+  var zy=pt+cH-(-yMin)/(yMax-yMin)*cH;
+  if(zy>pt&&zy<H-pb){
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(pl,zy);ctx.lineTo(W-pr,zy);ctx.stroke();
+  }
+}
+
+function makeCoords(W,H,pl,pr,pt,pb,xMin,xMax,yMin,yMax){
+  var cW=W-pl-pr,cH=H-pt-pb;
+  return{
+    sx:function(x){return pl+(x-xMin)/(xMax-xMin)*cW;},
+    sy:function(y){return H-pb-(y-yMin)/(yMax-yMin)*cH;}
+  };
+}
+
+/* ════════════════════════════════════════
+   PRIOR INTUITION CANVAS
+════════════════════════════════════════ */
+var priorRngSeed=1;
+function drawPriorSamples(){
+  var cvs=document.getElementById('prior-cvs');if(!cvs)return;
+  cvs.width=cvs.offsetWidth;cvs.height=200;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  clearCanvas(cvs,ctx);
+  var pl=28,pr=12,pt=16,pb=28;
+  var xMin=0,xMax=1,yMin=-3,yMax=3;
+  drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
+  var co=makeCoords(W,H,pl,pr,pt,pb,xMin,xMax,yMin,yMax);
+  var M=80;
+  var xs=Array.from({length:M},function(_,i){return i/(M-1);});
+  var kfn=kRBF;
+  var rfn=function(a,b){return kfn(a,b,0.2,1.0);};
+  var rng=seededRNG(priorRngSeed++*37+13);
+  var samples=sampleGP(xs,rfn,rng,5);
+  var sampleCols=['rgba(0,212,255,0.55)','rgba(16,185,129,0.55)','rgba(139,92,246,0.55)','rgba(245,158,11,0.55)','rgba(244,63,94,0.55)'];
+  samples.forEach(function(s,si){
+    ctx.strokeStyle=sampleCols[si%sampleCols.length];ctx.lineWidth=1.8;ctx.beginPath();
+    s.forEach(function(y,i){
+      var px=co.sx(xs[i]),py=co.sy(clamp(y,yMin,yMax));
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+  });
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('5 function samples from GP prior (RBF, l=0.2)',W/2,H-2);
+}
+
+var posteriorDemoStep=0;
+var posteriorDemoData=[
+  {x:0.15,y:0.7},{x:0.35,y:-0.4},{x:0.6,y:0.9},{x:0.78,y:-0.3},{x:0.9,y:0.5}
+];
+function drawPosteriorDemo(){
+  posteriorDemoStep=Math.min(posteriorDemoStep+1,posteriorDemoData.length);
+  var cvs=document.getElementById('posterior-cvs');if(!cvs)return;
+  cvs.width=cvs.offsetWidth;cvs.height=200;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  clearCanvas(cvs,ctx);
+  var pl=28,pr=12,pt=16,pb=28;
+  var xMin=0,xMax=1,yMin=-2.5,yMax=2.5;
+  drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
+  var co=makeCoords(W,H,pl,pr,pt,pb,xMin,xMax,yMin,yMax);
+  var M=100;
+  var xstar=Array.from({length:M},function(_,i){return i/(M-1);});
+  var pts=posteriorDemoData.slice(0,posteriorDemoStep);
+  var xs=pts.map(function(p){return p.x;});
+  var ys=pts.map(function(p){return p.y;});
+  var rfn=function(a,b){return kRBF(a,b,0.25,1.0);};
+  var res=computeGPR(xs,ys,xstar,rfn,0.05);
+
+  // Confidence band
+  ctx.beginPath();
+  for(var i=0;i<M;i++){ctx.lineTo(co.sx(xstar[i]),co.sy(clamp(res.mean[i]+1.96*res.std[i],yMin,yMax)));}
+  for(var i2=M-1;i2>=0;i2--){ctx.lineTo(co.sx(xstar[i2]),co.sy(clamp(res.mean[i2]-1.96*res.std[i2],yMin,yMax)));}
+  ctx.closePath();ctx.fillStyle='rgba(0,212,255,0.13)';ctx.fill();
+
+  // Mean
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.beginPath();
+  res.mean.forEach(function(m,i){
+    var px=co.sx(xstar[i]),py=co.sy(clamp(m,yMin,yMax));
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Data points
+  pts.forEach(function(p){
+    ctx.beginPath();ctx.arc(co.sx(p.x),co.sy(p.y),5,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=1.5;ctx.stroke();
+  });
+
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText(pts.length+' data point'+(pts.length!==1?'s':'')+' — GP posterior',W/2,H-2);
+}
+
+/* ════════════════════════════════════════
+   STEP CANVASES
+════════════════════════════════════════ */
+var stepRng=seededRNG(42);
+var STEP_XS=Array.from({length:100},function(_,i){return i/99;});
+var STEP_OBS={xs:[0.1,0.3,0.5,0.72,0.9],ys:[0.8,-0.5,0.9,-0.3,0.5]};
+
+function drawGPRScene(ctx,W,H,xs,ys,xstar,kfn,sn,opts){
+  opts=opts||{};
+  var pl=36,pr=14,pt=20,pb=24;
+  var yMin=-3,yMax=3;
+  clearCanvas({width:W,height:H},{clearRect:function(){},fillStyle:'',fillRect:function(){}},ctx);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
+  var co=makeCoords(W,H,pl,pr,pt,pb,0,1,yMin,yMax);
+
+  var res=computeGPR(xs,ys,xstar,kfn,sn);
+
+  // Prior samples (dim)
+  if(opts.showPrior){
+    var rng2=seededRNG(opts.priorSeed||7);
+    var priorSamples=sampleGP(xstar,kfn,rng2,4);
+    priorSamples.forEach(function(s){
+      ctx.strokeStyle='rgba(0,212,255,0.15)';ctx.lineWidth=1.2;ctx.beginPath();
+      s.forEach(function(y,i){
+        var px=co.sx(xstar[i]),py=co.sy(clamp(y,yMin,yMax));
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      });
+      ctx.stroke();
+    });
+  }
+
+  // Posterior samples
+  if(opts.showPostSamples&&xs.length>0){
+    var rng3=seededRNG(opts.postSeed||13);
+    for(var s=0;s<4;s++){
+      var z=Array.from({length:xstar.length},function(){return randn(rng3);});
+      ctx.strokeStyle='rgba(16,185,129,0.25)';ctx.lineWidth=1;ctx.beginPath();
+      z.forEach(function(zi,i){
+        var y=res.mean[i]+res.std[i]*zi;
+        var px=co.sx(xstar[i]),py=co.sy(clamp(y,yMin,yMax));
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      });
+      ctx.stroke();
+    }
+  }
+
+  // Confidence band
+  if(opts.showBand!==false){
+    ctx.beginPath();
+    for(var i=0;i<xstar.length;i++)ctx.lineTo(co.sx(xstar[i]),co.sy(clamp(res.mean[i]+1.96*res.std[i],yMin,yMax)));
+    for(var i2=xstar.length-1;i2>=0;i2--)ctx.lineTo(co.sx(xstar[i2]),co.sy(clamp(res.mean[i2]-1.96*res.std[i2],yMin,yMax)));
+    ctx.closePath();ctx.fillStyle='rgba(0,212,255,0.11)';ctx.fill();
+  }
+
+  // Mean
+  if(opts.showMean!==false){
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=2.5;ctx.beginPath();
+    res.mean.forEach(function(m,i){
+      var px=co.sx(xstar[i]),py=co.sy(clamp(m,yMin,yMax));
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+  }
+
+  // Data points
+  xs.forEach(function(x,i){
+    ctx.beginPath();ctx.arc(co.sx(x),co.sy(ys[i]),5.5,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=1.8;ctx.stroke();
+  });
+
+  return{co:co,res:res};
+}
+
+function drawStep1(t){
+  var cvs=document.getElementById('cvs1');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  // Show prior samples fading in
+  var pl=36,pr=14,pt=20,pb=24,yMin=-3,yMax=3;
+  drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
+  var co=makeCoords(W,H,pl,pr,pt,pb,0,1,yMin,yMax);
+  var rfn=function(a,b){return kRBF(a,b,0.25,1.0);};
+  var rng2=seededRNG(42);
+  var samples=sampleGP(STEP_XS,rfn,rng2,6);
+  var cols=['#00d4ff','#10b981','#8b5cf6','#f59e0b','#f43f5e','#00d4ff'];
+  samples.forEach(function(s,si){
+    var prog=clamp(et*(samples.length+1)-si,0,1);
+    if(prog<=0)return;
+    ctx.globalAlpha=prog*0.6;
+    ctx.strokeStyle=cols[si%cols.length];ctx.lineWidth=1.8;ctx.beginPath();
+    s.forEach(function(y,i){
+      var px=co.sx(STEP_XS[i]),py=co.sy(clamp(y,yMin,yMax));
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+    ctx.globalAlpha=1;
+  });
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('GP prior: 6 sampled functions (all equally plausible before data)',W/2,H-2);
+}
+
+function drawStep2(t){
+  var cvs=document.getElementById('cvs2');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  // Show 3 different length scales
+  var pl=36,pr=14,pt=20,pb=24,yMin=-3,yMax=3;
+  var co=makeCoords(W,H,pl,pr,pt,pb,0,1,yMin,yMax);
+  drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
+  var lvals=[0.05,0.2,0.6];
+  var lcols=['#f43f5e','#00d4ff','#10b981'];
+  var llbls=['l=0.05 (wiggly)','l=0.20 (medium)','l=0.60 (smooth)'];
+  lvals.forEach(function(l,li){
+    var prog=clamp(et*(lvals.length+1)-li,0,1);
+    if(prog<=0)return;
+    var rfn2=function(a,b){return kRBF(a,b,l,1.0);};
+    var rng3=seededRNG(99+li);
+    var s=sampleGP(STEP_XS,rfn2,rng3,1)[0];
+    ctx.globalAlpha=prog;
+    ctx.strokeStyle=lcols[li];ctx.lineWidth=2;ctx.beginPath();
+    s.forEach(function(y,i){
+      var px=co.sx(STEP_XS[i]),py=co.sy(clamp(y,yMin,yMax));
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+    ctx.fillStyle=lcols[li];ctx.font='bold 11px DM Sans,sans-serif';
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText(llbls[li],co.sx(0.02),co.sy(2.5-li*1.8));
+    ctx.globalAlpha=1;
+  });
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('RBF kernel: same data but different length-scale l',W/2,H-2);
+}
+
+function drawStep3(t){
+  var cvs=document.getElementById('cvs3');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  var et=eio(clamp(t,0,1));
+  // Show covariance matrix as heatmap
+  var n=6;
+  var xs2=Array.from({length:n},function(_,i){return 0.1+i*0.16;});
+  var rfn=function(a,b){return kRBF(a,b,0.25,1.0);};
+  var K=buildK(xs2,xs2,rfn);
+
+  var cellSz=Math.min((W-80)/n,(H-60)/n);
+  var startX=(W-cellSz*n)/2,startY=(H-cellSz*n)/2-10;
+
+  for(var i=0;i<n;i++)for(var j=0;j<n;j++){
+    var prog=clamp(et*(n*n+2)-(i*n+j),0,1);
+    if(prog<=0)continue;
+    var v=K[i][j];
+    var r=Math.round(v*100+20),gb=Math.round((1-v)*40+10);
+    ctx.globalAlpha=prog;
+    ctx.fillStyle='rgb('+r+','+Math.round(v*180+20)+','+gb+')';
+    ctx.fillRect(startX+j*cellSz+1,startY+i*cellSz+1,cellSz-2,cellSz-2);
+    ctx.fillStyle='rgba(255,255,255,0.9)';ctx.font='bold '+(Math.max(9,Math.floor(cellSz*0.22)))+'px JetBrains Mono,monospace';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(v.toFixed(2),startX+j*cellSz+cellSz/2,startY+i*cellSz+cellSz/2);
+    ctx.globalAlpha=1;
+  }
+  // Row/col labels
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px DM Sans,sans-serif';
+  for(var i2=0;i2<n;i2++){
+    ctx.textAlign='center';ctx.textBaseline='bottom';
+    ctx.fillText('x'+(i2+1),startX+i2*cellSz+cellSz/2,startY-4);
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText('x'+(i2+1),startX-4,startY+i2*cellSz+cellSz/2);
+  }
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('K matrix: K[i,j] = k(x_i, x_j). Diagonal = 1.0 (self-similarity)',W/2,H-2);
+}
+
+function drawStep4(t){
+  var cvs=document.getElementById('cvs4');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  var et=eio(clamp(t,0,1));
+  var rfn=function(a,b){return kRBF(a,b,0.25,1.0);};
+  // Animate: fade from prior to posterior
+  var nObs=Math.floor(et*STEP_OBS.xs.length);
+  var xsObs=STEP_OBS.xs.slice(0,nObs);
+  var ysObs=STEP_OBS.ys.slice(0,nObs);
+  drawGPRScene(ctx,W,H,xsObs,ysObs,STEP_XS,rfn,0.05,{showBand:true,showMean:true,showPrior:nObs===0});
+  var label=nObs===0?'Prior (no data)':'Posterior with '+nObs+' observation'+(nObs>1?'s':'');
+  ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText(label,W/2,W>400?H-2:H-2);
+}
+
+function drawStep5(t){
+  var cvs=document.getElementById('cvs5');if(!cvs)return;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  var et=eio(clamp(t,0,1));
+  var rfn=function(a,b){return kRBF(a,b,0.25,1.0);};
+  var res=drawGPRScene(ctx,W,H,STEP_OBS.xs,STEP_OBS.ys,STEP_XS,rfn,0.05,{showBand:true,showMean:true,showPostSamples:et>0.5});
+  // Annotate uncertainty at a gap region
+  if(et>0.6){
+    var gapIdx=40;
+    var co=res.co;
+    var mx=co.sx(STEP_XS[gapIdx]);
+    var my=co.sy(res.res.mean[gapIdx]);
+    var uy1=co.sy(res.res.mean[gapIdx]+1.96*res.res.std[gapIdx]);
+    var uy2=co.sy(res.res.mean[gapIdx]-1.96*res.res.std[gapIdx]);
+    ctx.globalAlpha=clamp((et-0.6)/0.3,0,1);
+    ctx.strokeStyle='#f59e0b';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(mx,uy1);ctx.lineTo(mx,uy2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(mx-5,uy1);ctx.lineTo(mx+5,uy1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(mx-5,uy2);ctx.lineTo(mx+5,uy2);ctx.stroke();
+    ctx.fillStyle='#f59e0b';ctx.font='10px JetBrains Mono,monospace';
+    ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('95% CI: +-'+(1.96*res.res.std[gapIdx]).toFixed(2),mx+8,(uy1+uy2)/2);
+    ctx.globalAlpha=1;
+  }
+  ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px DM Sans,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  ctx.fillText('Posterior mean + 95% CI + posterior samples',W/2,H-2);
+}
+
+function animStep(n){
+  var fns=[null,drawStep1,drawStep2,drawStep3,drawStep4,drawStep5];
+  var durs=[0,2200,2200,2400,2800,2400];
+  var start=null;
+  function frame(ts){
+    if(!start)start=ts;
+    var t=Math.min((ts-start)/durs[n],1);
+    fns[n](t);
+    if(t<1)requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ════════════════════════════════════════
+   KERNEL GALLERY
+════════════════════════════════════════ */
+function drawKernelGallery(){
+  function drawKPanel(id,kfn,col){
+    var cvs=document.getElementById(id);if(!cvs)return;
+    cvs.width=cvs.offsetWidth;cvs.height=120;
+    var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+    var rng2=seededRNG(77);
+    var xs2=Array.from({length:80},function(_,i){return i/79;});
+    var samples=sampleGP(xs2,kfn,rng2,3);
+    var pl=8,pr=8,pt=8,pb=8;
+    var yMin=-2.5,yMax=2.5,cW=W-pl-pr,cH=H-pt-pb;
+    samples.forEach(function(s,si){
+      var alpha=[0.7,0.5,0.35][si];
+      ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.globalAlpha=alpha;ctx.beginPath();
+      s.forEach(function(y,i){
+        var px=pl+(i/79)*cW;
+        var py=pt+cH-clamp((y-yMin)/(yMax-yMin),0,1)*cH;
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      });
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+  }
+  drawKPanel('k-rbf',function(a,b){return kRBF(a,b,0.2,1);}, '#00d4ff');
+  drawKPanel('k-matern',function(a,b){return kMatern52(a,b,0.2,1);},'#10b981');
+  drawKPanel('k-per',function(a,b){return kPeriodic(a,b,0.3,1,0.25);},'#8b5cf6');
+}
+
+/* ════════════════════════════════════════
+   INTERACTIVE EXPLORER
+════════════════════════════════════════ */
+var GPR_DATA=[];
+var GPR_KERNEL='rbf';
+var GPR_PRIOR_MODE=false;
+
+function getParams(){
+  var lRaw=parseInt(document.getElementById('sl-l').value);
+  var sfRaw=parseInt(document.getElementById('sl-sf').value);
+  var snRaw=parseInt(document.getElementById('sl-sn').value);
+  var pRaw=parseInt(document.getElementById('sl-p').value);
+  var l=lRaw/50;
+  var sf=sfRaw/10;
+  var sn=snRaw/50;
+  var p=pRaw/50;
+  document.getElementById('vl-l').textContent=l.toFixed(2);
+  document.getElementById('vl-sf').textContent=sf.toFixed(2);
+  document.getElementById('vl-sn').textContent=sn.toFixed(2);
+  document.getElementById('vl-p').textContent=p.toFixed(2);
+  return{l:l,sf:sf,sn:sn,p:p};
+}
+
+function buildKfn(params){
+  var l=params.l,sf=params.sf,p=params.p;
+  if(GPR_KERNEL==='matern')return function(a,b){return kMatern52(a,b,l,sf);};
+  if(GPR_KERNEL==='periodic')return function(a,b){return kPeriodic(a,b,l,sf,p);};
+  return function(a,b){return kRBF(a,b,l,sf);};
+}
+
+function setKernel(k){
+  GPR_KERNEL=k;
+  document.querySelectorAll('.kbtn').forEach(function(b){b.classList.remove('active');});
+  var ids={rbf:'k-rbf-btn',matern:'k-mat-btn',periodic:'k-per-btn'};
+  var btn=document.getElementById(ids[k]);if(btn)btn.classList.add('active');
+  document.getElementById('period-row').style.display=k==='periodic'?'flex':'none';
+  renderGPR();
+}
+function onParamChange(){getParams();renderGPR();}
+function clearPoints(){GPR_DATA=[];GPR_PRIOR_MODE=false;renderGPR();}
+function drawPriorMode(){GPR_PRIOR_MODE=true;GPR_DATA=[];renderGPR();}
+
+function addPreset(name){
+  GPR_PRIOR_MODE=false;
+  if(name==='smooth'){
+    GPR_DATA=[{x:0.1,y:0.5},{x:0.25,y:0.95},{x:0.5,y:0.0},{x:0.75,y:-0.95},{x:0.9,y:-0.5}];
+  } else if(name==='noisy'){
+    var rng2=seededRNG(44);
+    GPR_DATA=Array.from({length:12},function(_,i){
+      return{x:0.05+i*0.08,y:Math.sin(i*1.5)*0.8+randn(rng2)*0.35};
+    });
+  } else if(name==='gap'){
+    GPR_DATA=[{x:0.05,y:0.3},{x:0.12,y:0.8},{x:0.2,y:0.5},{x:0.78,y:-0.3},{x:0.86,y:0.4},{x:0.94,y:0.1}];
+  }
+  renderGPR();
+}
+
+function renderGPR(){
+  var cvs=document.getElementById('gpr-cvs');if(!cvs)return;
+  cvs.width=cvs.offsetWidth;
+  var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  var params=getParams();
+  var kfn=buildKfn(params);
+  var pl=42,pr=14,pt=22,pb=30;
+  var yMin=-3.2,yMax=3.2;
+  drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
+  var co=makeCoords(W,H,pl,pr,pt,pb,0,1,yMin,yMax);
+  var M=120;
+  var xstar=Array.from({length:M},function(_,i){return i/(M-1);});
+  var xs=GPR_DATA.map(function(p){return p.x;});
+  var ys=GPR_DATA.map(function(p){return p.y;});
+  var res=computeGPR(xs,ys,xstar,kfn,params.sn);
+
+  if(GPR_PRIOR_MODE){
+    // Draw prior samples
+    var rng3=seededRNG(Date.now()%1000);
+    var psamps=sampleGP(xstar,kfn,rng3,6);
+    var pcols=['rgba(0,212,255,0.6)','rgba(16,185,129,0.6)','rgba(139,92,246,0.6)','rgba(245,158,11,0.55)','rgba(244,63,94,0.55)','rgba(0,212,255,0.4)'];
+    psamps.forEach(function(s,si){
+      ctx.strokeStyle=pcols[si%pcols.length];ctx.lineWidth=1.8;ctx.beginPath();
+      s.forEach(function(y,i){
+        var px=co.sx(xstar[i]),py=co.sy(clamp(y,yMin,yMax));
+        i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      });
+      ctx.stroke();
+    });
+    document.getElementById('gpr-stats').textContent='PRIOR MODE\n6 sampled functions.\nNo data observed yet.\n\nKernel: '+GPR_KERNEL.toUpperCase()+'\nl = '+params.l.toFixed(2)+'\nsf = '+params.sf.toFixed(2);
+    return;
+  }
+
+  // Confidence band
+  ctx.beginPath();
+  for(var i=0;i<M;i++)ctx.lineTo(co.sx(xstar[i]),co.sy(clamp(res.mean[i]+1.96*res.std[i],yMin,yMax)));
+  for(var i2=M-1;i2>=0;i2--)ctx.lineTo(co.sx(xstar[i2]),co.sy(clamp(res.mean[i2]-1.96*res.std[i2],yMin,yMax)));
+  ctx.closePath();ctx.fillStyle='rgba(0,212,255,0.1)';ctx.fill();
+
+  // 1-sigma band
+  ctx.beginPath();
+  for(var i3=0;i3<M;i3++)ctx.lineTo(co.sx(xstar[i3]),co.sy(clamp(res.mean[i3]+res.std[i3],yMin,yMax)));
+  for(var i4=M-1;i4>=0;i4--)ctx.lineTo(co.sx(xstar[i4]),co.sy(clamp(res.mean[i4]-res.std[i4],yMin,yMax)));
+  ctx.closePath();ctx.fillStyle='rgba(0,212,255,0.06)';ctx.fill();
+
+  // Mean
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=2.5;ctx.beginPath();
+  res.mean.forEach(function(m,i){
+    var px=co.sx(xstar[i]),py=co.sy(clamp(m,yMin,yMax));
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // Data points
+  GPR_DATA.forEach(function(p){
+    ctx.beginPath();ctx.arc(co.sx(p.x),co.sy(clamp(p.y,yMin,yMax)),6,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#00d4ff';ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // Axis labels
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='10px JetBrains Mono,monospace';
+  ctx.textAlign='center';ctx.textBaseline='bottom';
+  [0,0.25,0.5,0.75,1].forEach(function(v){
+    ctx.fillText(v.toFixed(2),co.sx(v),H-pb+14);
+  });
+  [-2,0,2].forEach(function(v){
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText(v,pl-4,co.sy(v));
+  });
+
+  // Stats
+  var maxStd=Math.max.apply(null,res.std);
+  var minStd=Math.min.apply(null,res.std);
+  document.getElementById('gpr-stats').textContent='Points: '+GPR_DATA.length+'\nKernel: '+GPR_KERNEL.toUpperCase()+'\nl = '+params.l.toFixed(2)+'\nsf = '+params.sf.toFixed(2)+'\nsn = '+params.sn.toFixed(2)+'\nlog marginal lik. = '+res.lml.toFixed(2)+'\n\nMax uncertainty: '+maxStd.toFixed(3)+'\nMin uncertainty: '+minStd.toFixed(3)+'\n\nMatrix inversion: '+GPR_DATA.length+'x'+GPR_DATA.length;
+}
+
+// Click to add points
+function canvasXY(cvs,evt){
+  var rect=cvs.getBoundingClientRect();
+  var scaleX=cvs.width/rect.width,scaleY=cvs.height/rect.height;
+  return{px:(evt.clientX-rect.left)*scaleX,py:(evt.clientY-rect.top)*scaleY};
+}
+
+function setupGPRCanvas(){
+  var cvs=document.getElementById('gpr-cvs');if(!cvs)return;
+  var pl=42,pr=14,pt=22,pb=30;
+  var yMin=-3.2,yMax=3.2;
+
+  cvs.addEventListener('click',function(evt){
+    GPR_PRIOR_MODE=false;
+    cvs.width=cvs.offsetWidth;
+    var W=cvs.width,H=cvs.height;
+    var cW=W-pl-pr,cH=H-pt-pb;
+    var xy=canvasXY(cvs,evt);
+    var x=clamp((xy.px-pl)/cW,0,1);
+    var y=yMin+(1-(xy.py-pt)/cH)*(yMax-yMin);
+    y=clamp(y,yMin,yMax);
+    GPR_DATA.push({x:x,y:y});
+    renderGPR();
+  });
+
+  cvs.addEventListener('contextmenu',function(evt){
+    evt.preventDefault();
+    if(GPR_DATA.length>0){GPR_DATA.pop();renderGPR();}
+  });
+}
+
+/* ════════════════════════════════════════
+   HERO CANVAS
+════════════════════════════════════════ */
+function initHero(){
+  var cvs=document.getElementById('hero-cvs');
+  function resize(){cvs.width=window.innerWidth;cvs.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  var ctx=cvs.getContext('2d');
+  var rng2=seededRNG(42);
+  // Animate a GP being fitted
+  var M=80;
+  var xs2=Array.from({length:M},function(_,i){return i/(M-1);});
+  var heroData=[{x:0.1,y:0.6},{x:0.3,y:-0.4},{x:0.55,y:0.95},{x:0.7,y:0.1},{x:0.88,y:-0.6}];
+  var rfn2=function(a,b){return kRBF(a,b,0.22,1.2);};
+  var t2=0;
+
+  // Particle bg
+  var N=70;
+  var pts=Array.from({length:N},function(){
+    return{x:Math.random()*2-1,y:Math.random()*2-1,vx:(rng2()-0.5)*0.003,vy:(rng2()-0.5)*0.003,r:rng2()*1.4+0.4,a:rng2()*0.2+0.04};
+  });
+
+  function frame(){
+    t2+=0.008;
+    ctx.fillStyle='rgba(6,11,26,0.18)';ctx.fillRect(0,0,cvs.width,cvs.height);
+    var cx=cvs.width/2,cy=cvs.height/2;
+    var W2=cvs.width*0.7,H2=cvs.height*0.5;
+
+    // Particles
+    for(var pi=0;pi<pts.length;pi++){
+      var p=pts[pi];
+      p.x+=p.vx;p.y+=p.vy;
+      if(Math.abs(p.x)>1.1){p.vx*=-1;}
+      if(Math.abs(p.y)>1.1){p.vy*=-1;}
+      var alpha=Math.round(p.a*255).toString(16).padStart(2,'0');
+      ctx.beginPath();ctx.arc(cx+p.x*cvs.width*0.5,cy+p.y*cvs.height*0.5,p.r,0,Math.PI*2);
+      ctx.fillStyle='#00d4ff'+alpha;ctx.fill();
+    }
+
+    // GP curve
+    var nObs=Math.floor((Math.sin(t2*0.4)+1)*2.5)+1;
+    nObs=Math.min(nObs,heroData.length);
+    var xsH=heroData.slice(0,nObs).map(function(p){return p.x;});
+    var ysH=heroData.slice(0,nObs).map(function(p){return p.y;});
+    var resH=computeGPR(xsH,ysH,xs2,rfn2,0.05);
+    var pl2=cx-W2/2,yMin2=-2.5,yMax2=2.5;
+    var sxH=function(x){return pl2+x*W2;};
+    var syH=function(y){return cy+(y-0)/(yMax2-yMin2)*(-H2);};
+
+    ctx.beginPath();
+    for(var i=0;i<M;i++)ctx.lineTo(sxH(xs2[i]),syH(clamp(resH.mean[i]+1.96*resH.std[i],yMin2,yMax2)));
+    for(var i2=M-1;i2>=0;i2--)ctx.lineTo(sxH(xs2[i2]),syH(clamp(resH.mean[i2]-1.96*resH.std[i2],yMin2,yMax2)));
+    ctx.closePath();ctx.fillStyle='rgba(0,212,255,0.07)';ctx.fill();
+
+    ctx.strokeStyle='rgba(0,212,255,0.7)';ctx.lineWidth=2;ctx.beginPath();
+    resH.mean.forEach(function(m,i){
+      var px=sxH(xs2[i]),py=syH(clamp(m,yMin2,yMax2));
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+
+    heroData.slice(0,nObs).forEach(function(p){
+      ctx.beginPath();ctx.arc(sxH(p.x),syH(p.y),5,0,Math.PI*2);
+      ctx.fillStyle='#fff';ctx.fill();
+      ctx.strokeStyle='#00d4ff';ctx.lineWidth=1.5;ctx.stroke();
+    });
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* ════════════════════════════════════════
+   QUIZ
+════════════════════════════════════════ */
+var QUIZ=[
+  {q:"Gaussian Process Regression was originally developed for which application?",
+   opts:["Image recognition in early neural networks","Estimating gold concentration in underground mines (geostatistics)","Fitting polynomial curves to astronomical data","Training language models on large corpora"],
+   ans:1,exp:"Danie Krige (1951) developed the foundations of GPR to solve a practical mining problem: given a few drill holes showing gold concentrations at specific locations, how do you estimate the concentration everywhere else? This spatial interpolation technique, named 'kriging' in his honour, was later formalised by Matheron and eventually brought into machine learning by Rasmussen and Williams."},
+  {q:"A Gaussian Process is described as 'a distribution over functions'. What does this mean?",
+   opts:["It outputs a Gaussian probability distribution instead of a single number","Any finite set of function values you could draw from it follows a joint Gaussian distribution","It only works with functions that have Gaussian-shaped graphs","It requires the input data to be normally distributed"],
+   ans:1,exp:"A GP is a stochastic process where any finite collection of function evaluations [f(x_1), ..., f(x_n)] follows a joint multivariate Gaussian distribution. This means drawing a 'sample' from a GP gives you an entire function (or curve), not just a single number. The mean function and kernel fully define this distribution."},
+  {q:"In GPR, what does the length-scale parameter l in the RBF kernel control?",
+   opts:["The amplitude of the predicted function","How quickly the function changes — large l means smoother, slower-varying functions","The number of training points the model uses","The noise level in the observations"],
+   ans:1,exp:"The RBF kernel k(x,x') = sf^2 * exp(-(x-x')^2 / (2l^2)) has the distance (x-x') scaled by l. A large l means two points that are far apart still have high correlation — so the function changes slowly and smoothly. A small l means correlation drops quickly with distance — producing wiggly, fast-changing functions."},
+  {q:"What are the two outputs of GPR at each test point?",
+   opts:["A class label and a probability","A mean prediction and a standard deviation (uncertainty estimate)","A gradient and a Hessian","A lower bound and an upper bound with no mean"],
+   ans:1,exp:"At each test point x*, GPR gives: (1) mu*(x*) — the posterior mean, which is the best single prediction, and (2) sigma*(x*) — the posterior standard deviation, which quantifies uncertainty. Together they form a full Gaussian distribution N(mu*, sigma*^2) over the function value at x*. The 95% confidence band is mu* +/- 1.96 * sigma*."},
+  {q:"You run GPR with zero observation noise (sn = 0). What happens at the training points?",
+   opts:["The predictions are undefined because division by zero occurs","The posterior uncertainty is zero — GPR interpolates exactly through training points","The model ignores the training data","The confidence bands become infinitely wide at training points"],
+   ans:1,exp:"With zero noise, GPR assumes the training observations are exact. The posterior variance at each training point collapses to zero (sigma*(x_i) = 0), and the posterior mean passes exactly through each observed value. This is interpolation. With noise > 0, GPR treats observations as uncertain and smooths through them instead of interpolating."},
+  {q:"Why does GPR scale as O(n^3) and become slow for large datasets?",
+   opts:["It needs to sample n^3 random functions during training","It must invert the n x n covariance matrix K_y, which takes O(n^3) operations","It evaluates the kernel function n^3 times","It requires n^3 data points to form a valid Gaussian distribution"],
+   ans:1,exp:"The posterior computation requires computing K_y^{-1} y, where K_y is the n x n covariance matrix of all training pairs. Matrix inversion (or Cholesky decomposition) has time complexity O(n^3) and memory O(n^2). For n = 1000 points this is fine. For n = 100,000 it becomes impractical without approximations (sparse GPs, inducing points, etc.)."},
+  {q:"You want to model daily temperature that follows a repeating seasonal pattern. Which kernel should you choose?",
+   opts:["RBF (Squared Exponential) — because it produces smooth functions","Matern 5/2 — because real temperature data is not perfectly smooth","Periodic kernel — because it explicitly models repeating patterns","A polynomial kernel — because temperatures follow a polynomial trend"],
+   ans:2,exp:"The periodic kernel k(x,x') = sf^2 * exp(-2*sin^2(pi*|x-x'|/p) / l^2) is designed precisely for periodic functions. Setting the period p to 365 days would capture annual seasonality. The RBF and Matern kernels produce functions with no inherent periodicity. If the signal is both periodic and trending, you can combine kernels (e.g. Periodic + RBF) to model both components."}
+];
+var userAns={};
+function renderQuiz(){
+  document.getElementById('quiz-container').innerHTML=QUIZ.map(function(q,i){
+    return '<div class="quiz-q" id="qq'+i+'"><div class="q-num">Question '+(i+1)+' of '+QUIZ.length+'</div><div class="q-text">'+q.q+'</div><div class="opts">'+
+    q.opts.map(function(o,j){return '<button class="opt-btn" id="qq'+i+'o'+j+'" onclick="selOpt('+i+','+j+')">'+String.fromCharCode(65+j)+'. '+o+'</button>';}).join('')+
+    '</div><div class="feedback" id="fb'+i+'"></div></div>';
+  }).join('');
+}
+function selOpt(qi,oi){
+  if(userAns[qi]!==undefined)return;
+  QUIZ[qi].opts.forEach(function(_,j){var b=document.getElementById('qq'+qi+'o'+j);if(b)b.classList.remove('selected');});
+  var btn=document.getElementById('qq'+qi+'o'+oi);if(btn)btn.classList.add('selected');
+  userAns[qi]=oi;
+}
+function submitQuiz(){
+  if(Object.keys(userAns).length<QUIZ.length){alert('Please answer all '+QUIZ.length+' questions!');return;}
+  var score=0;
+  QUIZ.forEach(function(q,i){
+    var ua=userAns[i];
+    if(ua===q.ans)score++;
+    var okBtn=document.getElementById('qq'+i+'o'+q.ans);if(okBtn)okBtn.classList.add('correct-ans');
+    if(ua!==q.ans){var wBtn=document.getElementById('qq'+i+'o'+ua);if(wBtn)wBtn.classList.add('wrong-ans');}
+    q.opts.forEach(function(_,j){var b=document.getElementById('qq'+i+'o'+j);if(b)b.disabled=true;});
+    var qq=document.getElementById('qq'+i);if(qq)qq.classList.add(ua===q.ans?'correct':'incorrect');
+    var fb=document.getElementById('fb'+i);
+    if(fb){fb.textContent=(ua===q.ans?'Correct! ':'Incorrect. ')+q.exp;fb.className='feedback '+(ua===q.ans?'show-c':'show-w');}
+  });
+  document.getElementById('quiz-sub').style.display='none';
+  document.getElementById('quiz-result').style.display='block';
+  document.getElementById('score-num').textContent=score+'/'+QUIZ.length;
+  var lbls=['Keep reviewing!','Keep reviewing!','Getting there!','Good effort!','Nice work!','Excellent!','Great!','Perfect!'];
+  document.getElementById('score-lbl').textContent=lbls[Math.min(score,lbls.length-1)];
+}
+function resetQuiz(){
+  Object.keys(userAns).forEach(function(k){delete userAns[k];});
+  document.getElementById('quiz-result').style.display='none';
+  document.getElementById('quiz-sub').style.display='block';
+  renderQuiz();
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+window.addEventListener('load',function(){
+  initHero();
+
+  // Step canvases
+  for(var n=1;n<=5;n++){var c=document.getElementById('cvs'+n);if(c){c.width=600;c.height=380;}}
+  drawStep1(0);drawStep2(0);drawStep3(0);drawStep4(0);drawStep5(0);
+
+  // Intuition panels
+  drawPriorSamples();
+  drawPosteriorDemo();
+
+  // Kernel gallery
+  setTimeout(drawKernelGallery,200);
+
+  // Explorer
+  var ec=document.getElementById('gpr-cvs');
+  if(ec){ec.width=ec.offsetWidth||640;ec.height=380;}
+  setupGPRCanvas();
+  renderGPR();
+
+  // Auto-animate steps on scroll
+  var seen=new Set();
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting&&!seen.has(e.target.id)){
+        seen.add(e.target.id);
+        var n2=parseInt(e.target.id.replace('cvs',''));
+        if(n2>=1&&n2<=5)setTimeout(function(){animStep(n2);},350);
+      }
+    });
+  },{threshold:0.6});
+  for(var n3=1;n3<=5;n3++){var cv=document.getElementById('cvs'+n3);if(cv)obs.observe(cv);}
+
+  // Resize handler for explorer
+  window.addEventListener('resize',function(){
+    var ec2=document.getElementById('gpr-cvs');
+    if(ec2){ec2.width=ec2.offsetWidth;}
+    renderGPR();
+    drawKernelGallery();
+    drawPriorSamples();
+  });
+
+  // Reveal
+  var revObs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});
+  },{threshold:0.1});
+  document.querySelectorAll('.reveal').forEach(function(el){revObs.observe(el);});
+
+  // Progress bar
+  window.addEventListener('scroll',function(){
+    var s=window.scrollY,tot=document.body.scrollHeight-window.innerHeight;
+    document.getElementById('prog').style.width=(s/tot*100)+'%';
+  });
+
+  renderQuiz();
+});
+
+/* ── Theme ── */
+(function(){
+  if(localStorage.getItem('manifold_theme')==='light')document.body.classList.add('light');
+  function upd(){var b=document.getElementById('theme-btn');if(b)b.textContent=document.body.classList.contains('light')?'\u{1F319}':'\u2600\uFE0F';}
+  window.toggleTheme=function(){var l=document.body.classList.toggle('light');localStorage.setItem('manifold_theme',l?'light':'dark');upd();};
+  document.addEventListener('DOMContentLoaded',upd);
+})();
+
+</script>
+</body>
+</html>
