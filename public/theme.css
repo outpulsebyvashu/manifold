@@ -1,0 +1,242 @@
+/* theme.css — shared design language for every page (lime + forest, Outfit, rounded cards, pill buttons, mobile-first).
+   Loaded AFTER each page's own CSS. Light is the default; the dark variant uses the same palette. */
+:root{
+  --lime:#b7f36b;--forest:#0f3b1f;--orange:#ff6a2b;
+  --bg:#0a0d0a;--card:#151a15;--chip:#1e251e;
+  --surface:rgba(255,255,255,0.05);--surface2:rgba(255,255,255,0.08);--surface-h:rgba(255,255,255,0.09);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--border-h:rgba(255,255,255,0.18);
+  --text:#f1f4ee;--muted:#8d978a;--soft:#b6c0b2;
+  --accent:#b7f36b;--accent2:#b7f36b;--cyan:#b7f36b;
+  --green:#4ade80;--gold:#fbbf24;--rose:#fb7185;--purple:#a78bfa;
+  --font:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+body.light{
+  --bg:#e9e9e9;--card:#ffffff;--chip:#f1f1ef;
+  --surface:#ffffff;--surface2:#f4f4f2;--surface-h:#fafaf8;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.12);--border-h:rgba(0,0,0,0.14);
+  --text:#0d0d0d;--muted:#626262;--soft:#3f3f3f;
+  --accent:#15803d;--accent2:#15803d;--cyan:#15803d;
+  --green:#15803d;--gold:#b45309;--rose:#be123c;--purple:#6d28d9;
+  --pca:#0e7490;--tsne:#be123c;--umap:#15803d;--lda:#6d28d9;--iso:#b45309;
+}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font)!important;background:var(--bg)!important;color:var(--text)!important;-webkit-font-smoothing:antialiased}
+body *{-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font-family:var(--font)}
+body.light #bg,body.light canvas#bg{display:none!important}
+
+/* ── headings: Outfit instead of the old serif ── */
+.hero-inner h1,
+.sec-hd h2,
+.analogy-card h3,
+.step-title,
+.explorer-hd h2,
+.dp-title,
+.quiz-hd h2,
+.score-big,
+.tl-content h4,
+.block-card h3,
+.int-card h4,
+.page-hd h1,
+.cmp-section h3,
+.nav-logo,
+.hero-title,
+.sec-title,
+.analogy-title,
+.step-num,
+.s-val,
+.stat-n,
+.explorer-title,
+.exp-m-val,
+.quiz-title,
+.q-text,
+.info-title,
+.empty-state h3,
+.section-title,
+.ba-card-title,
+.type-title,
+.why-title,
+.m-stat-val,
+.tech-name{font-family:var(--font)!important;font-weight:400!important;letter-spacing:-.02em!important;font-style:normal!important}
+.hero-title,.hero-inner h1,.page-hd h1{font-size:clamp(34px,9vw,64px)!important;font-weight:300!important;letter-spacing:-.04em!important;line-height:1.05!important;color:var(--text)!important;background:none!important;-webkit-text-fill-color:currentColor!important}
+.hero-title em,.hero-inner h1 em,.page-hd h1 em{font-style:normal;color:var(--accent)!important;-webkit-text-fill-color:currentColor!important;background:none!important}
+.sec-title,.sec-hd h2,.section-title{font-size:clamp(26px,6vw,40px)!important;font-weight:400!important}
+.nav-logo{font-weight:600!important;background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--text)!important}
+
+/* ── chips / eyebrows ── */
+.hero-eyebrow,.eyebrow,.sec-eyebrow,.section-tag,.nav-tag,.step-tag,.hero-badge{
+  display:inline-flex!important;align-items:center;gap:6px;padding:6px 14px!important;border-radius:999px!important;
+  background:var(--lime)!important;color:var(--forest)!important;border:0!important;font-weight:500!important;letter-spacing:.12em!important;font-size:11px!important;text-transform:uppercase}
+
+/* ── top navigation ── */
+.topnav,nav.nav,.nav,body.light .nav,body.light .topnav,body.light nav.nav{background:var(--bg)!important;border-bottom:0!important;backdrop-filter:none!important;box-shadow:none!important}
+.nav-back{background:var(--card)!important;color:var(--text)!important;border-radius:999px!important;padding:9px 16px!important;border:0!important;font-weight:500;text-decoration:none!important}
+.nav-crumb,.nav-sep{color:var(--muted)!important}
+.theme-btn,.theme-btn-fixed{width:44px!important;height:44px!important;border-radius:50%!important;background:var(--card)!important;border:0!important;color:var(--text)!important;display:inline-flex!important;align-items:center;justify-content:center;font-size:16px;padding:0!important}
+.theme-btn svg{width:18px;height:18px}
+
+/* ── cards ── */
+.analogy-card,
+.prop-card,
+.explorer-wrap,
+.quiz-wrap,
+.block-card,
+.int-card,
+.kernel-card,
+.ds-section,
+.tech-panel,
+.canvas-card,
+.controls-bar,
+.cmp-section,
+.step-block,
+.stat-card,
+.explorer,
+.info-card,
+.ctrl-panel,
+.output-panel,
+.ba-card,
+.type-card,
+.why-card,
+.manifold-card,
+.tech-row{background:var(--card)!important;border:0!important;border-radius:28px!important;box-shadow:none!important;backdrop-filter:none!important}
+.step-block{padding:20px}
+.explorer-panel,.q-card,.stat-box,.tile,.legend-item,.swatch-row,.canvas-box{border-radius:18px}
+.footer{color:var(--muted)!important}
+.footer a{color:var(--accent)!important}
+
+/* ── buttons: primary = forest pill (lime in dark), secondary = chip ── */
+.run-btn,
+.cvs-btn,
+.int-btn,
+.quiz-submit,
+.xbtn.primary,
+.action-btn.primary,
+.q-btn,
+.mini-btn{background:var(--forest)!important;color:#fff!important;border:0!important;border-radius:999px!important;font-weight:500!important;min-height:44px;box-shadow:none!important;background-image:none!important}
+body:not(.light) :is(.run-btn,
+.cvs-btn,
+.int-btn,
+.quiz-submit,
+.xbtn.primary,
+.action-btn.primary,
+.q-btn,
+.mini-btn){background:var(--lime)!important;color:var(--forest)!important}
+.ds-btn,
+.ctrl-btn,
+.opt-btn,
+.kbtn,
+.tbtn,
+.xbtn,
+.action-btn,
+.builtin-btn,
+.theme-btn,
+.tech-opt{border-radius:999px!important}
+.ds-btn,.opt-btn,.ctrl-btn,.kbtn,.tbtn,.builtin-btn,.xbtn:not(.primary),.action-btn:not(.primary){background:var(--chip)!important;color:var(--text)!important;border:0!important;min-height:40px}
+.ds-btn.active,.opt-btn.active,.ctrl-btn.active,.kbtn.active,.tbtn.active,.builtin-btn.active,.tech-opt.selected,.tech-opt.active{background:var(--lime)!important;color:var(--forest)!important;border:0!important}
+.builtin-btn{border-radius:20px!important}
+.tech-opt{border-radius:20px!important;background:var(--chip)!important;border:0!important}
+.q-opt{border-radius:18px!important;background:var(--chip)!important;border:0!important;color:var(--text)!important;min-height:48px}
+.q-opt:hover{background:var(--surface-h)!important}
+button:disabled{opacity:.55}
+
+/* ── forms / sliders ── */
+input[type=range]{accent-color:var(--accent)}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+select,input[type=text],input[type=number],input[type=search],textarea{background:var(--chip)!important;color:var(--text)!important;border:0!important;border-radius:12px!important}
+select{min-height:40px}
+.progress-bg,.iter-bar,.q-prog{background:var(--chip)!important;border-radius:999px!important}
+.progress-fill,.iter-fill{background:var(--lime)!important}
+.s-val,.param-val{color:var(--accent)!important}
+
+/* ── canvases stay as deep-forest panels (like the dark cards in the reference) ── */
+canvas{border-radius:20px;max-width:100%}
+.ldg td,.fm-table td,.fm-table th{border-color:var(--border)!important}
+details.pitfalls,.paste summary,.mini-btn{color:var(--text)}
+a{text-underline-offset:3px}
+
+/* ── mobile first ── */
+@media(max-width:720px){
+  .wrap,.hero-inner,.page>.wrap,.sec>.wrap{padding-left:16px!important;padding-right:16px!important;max-width:100%!important}
+  .topnav,nav.nav,.nav{padding-left:12px!important;padding-right:12px!important;gap:8px!important}
+  .nav-crumb,.nav-sep{display:none!important}
+  body.light .hero,body:not(.light) .hero{padding:40px 8px 32px!important}
+  .analogy-grid,
+.ba-grid,
+.blocks-grid,
+.canvas-row,
+.cmp-grid,
+.compare-grid,
+.controls-strip,
+.ex-layout,
+.explorer-grid,
+.intuition-grid,
+.kernel-grid,
+.ldg,
+.props-grid,
+.sweep-grid,
+.triple-grid,
+.two-col,
+.type-grid,
+.step-block{grid-template-columns:1fr!important;gap:14px!important}
+  .card,.step-block,.explorer-wrap,.quiz-wrap{padding:16px!important}
+  .controls-strip{display:grid!important}
+  .ctrl-panel{min-width:0!important;width:100%!important}
+  .q-grid,.stats-row,.stat-strip,.exp-metrics,.m-stats{grid-template-columns:1fr 1fr!important}
+  .output-hd{flex-wrap:wrap;gap:8px}
+  .output-actions{flex-wrap:wrap}
+  table{display:block;overflow-x:auto}
+  pre,.step-math,.formula{overflow-x:auto;max-width:100%}
+  img,svg{max-width:100%;height:auto}
+}
+
+/* ── hero: a lime card in light mode (decorative canvases hidden), dark card in dark mode ── */
+.hero{border-radius:32px;margin:84px 12px 0;overflow:hidden}
+body.light .hero{background:var(--lime)!important;color:var(--forest)!important;min-height:0!important;padding:56px 12px 48px!important}
+body.light .hero canvas,body.light .hero .hero-bg{display:none!important}
+body.light .hero .hero-title,body.light .hero-inner h1,body.light .hero h1{color:var(--forest)!important}
+body.light .hero .hero-sub,body.light .hero .hero-body,body.light .hero p{color:rgba(15,59,31,.78)!important}
+body.light .hero .hero-eyebrow,body.light .hero .eyebrow,body.light .hero .hero-badge{background:var(--forest)!important;color:var(--lime)!important}
+body.light .hero .hero-scroll{color:rgba(15,59,31,.7)!important}
+body:not(.light) .hero{background:var(--card)!important;min-height:0!important;padding:56px 12px 48px!important}
+.page-hd{padding-top:88px!important;text-align:left}
+.analogy-card::before,.int-card::before,.block-card::before,.kernel-card::before,.type-card::before,.why-card::before,.info-card::before,.prop-card::before,.step-block::before{display:none!important}
+.sec{padding-left:0;padding-right:0}
+
+/* ── code/formula blocks: deep-forest cards with lime text (readable in both modes) ── */
+.step-math,.formula,.deriv-box,.math-box,.math-block,pre,.deriv,.mi-block{background:#0d1a12!important;color:#d6f5a8!important;border:0!important;border-radius:18px!important}
+.step-math *,.formula *{color:inherit}
+/* ── canvases: always the deep-forest panel (their drawings assume a dark background) ── */
+canvas:not(#bg){background-color:#0d1a12!important}
+/* ── sliders ── */
+:root{--track:#2a322a}body.light{--track:#d6d6d3}
+input[type=range]{-webkit-appearance:none;appearance:none;height:28px;background:transparent!important}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--track)!important}
+input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--track)!important}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;margin-top:-8px;background:var(--forest)!important;border:3px solid var(--lime)!important;box-shadow:none!important}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--forest)!important;border:3px solid var(--lime)!important}
+body:not(.light) input[type=range]::-webkit-slider-thumb{background:var(--lime)!important;border-color:var(--forest)!important}
+
+/* ── dark info panels become soft chips in light mode (their text colours follow the theme) ── */
+body.light .deriv-panel,body.light .quiz-q,body.light .stats-box,body.light .exp-metric,body.light .label-select{background:var(--chip)!important;border:0!important;color:var(--text)!important;border-radius:18px!important}
+body:not(.light) .deriv-panel,body:not(.light) .quiz-q,body:not(.light) .stats-box,body:not(.light) .exp-metric{background:#101610!important;border:0!important;border-radius:18px!important}
+body.light .deriv-panel *{color:inherit}
+body.light .deriv-panel .mi,body.light .deriv-panel code,body.light .deriv-panel .deriv-step{color:var(--forest)!important;background:rgba(15,59,31,.08)!important}
+.nav-tag{white-space:nowrap}
+@media(max-width:560px){.nav-tag{display:none!important}}
+
+.math-block,.math-block :is(div,p,span,li,em,b,i,small):not(.mi):not(code){color:#cfe8b8!important}
+.math-block strong,.math-block h4,.math-block .derivation strong{color:var(--lime)!important}
+.step-math :is(div,p,span,li):not(.mi):not(code){color:#cfe8b8!important}
+
+/* ── never let content push the page wider than the screen ── */
+.step-block>*,.analogy-grid>*,.ex-layout>*,.controls-strip>*,.explorer-grid>*,.cmp-grid>*,.compare-grid>*,.blocks-grid>*,.two-col>*,.triple-grid>*,.type-grid>*,.props-grid>*,.kernel-grid>*,.intuition-grid>*,.canvas-row>*{min-width:0}
+.math-block,.formula,.step-math,.derivation,.deriv-step,pre,code{white-space:pre-wrap!important;overflow-wrap:anywhere;word-break:normal;max-width:100%}
+@media(max-width:720px){
+  html,body{overflow-x:hidden}
+  .output-actions{display:flex;flex-wrap:wrap;width:100%;justify-content:flex-start}
+  .output-hd{display:flex;flex-direction:column;align-items:flex-start}
+  .cvs-wrap,.step-canvas,.canvas-box{max-width:100%}
+  .step-block{display:block!important}
+  .step-num{margin-bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

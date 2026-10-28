@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Compare Techniques | MANIFOLD</title>
@@ -60,7 +61,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .canvas-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
 .canvas-hd-label{font-size:13px;font-weight:600}
 .canvas-hd-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
-.embed-cvs{width:100%;display:block;background:#070d1e;cursor:default}
+.embed-cvs{width:100%;display:block;background:#0d1a12;cursor:default}
 .iter-wrap{padding:10px 16px;border-top:1px solid var(--border)}
 .iter-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
 .iter-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
@@ -125,6 +126,9 @@ body.light #bg{opacity:0.05 !important;}
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <div id="prog"></div>
@@ -432,7 +436,7 @@ function drawScatter(side,pts,labels,colors,cn,title,extraInfo){
   var cvsId='cvs-'+side;
   var cvs=document.getElementById(cvsId);if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   if(!pts||!pts.length){
     ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font='14px DM Sans,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Press Run to compute',W/2,H/2);
@@ -475,7 +479,7 @@ function drawScatter(side,pts,labels,colors,cn,title,extraInfo){
 function drawEmpty(side){
   var cvs=document.getElementById('cvs-'+side);if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='rgba(255,255,255,0.1)';ctx.font='14px DM Sans,sans-serif';
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('Press Run to compute',W/2,H/2);
 }

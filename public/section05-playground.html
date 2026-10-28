@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dataset Playground | MANIFOLD</title>
@@ -103,7 +104,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .q-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
 .q-card b{display:block;font-size:20px;font-weight:600;font-family:'JetBrains Mono',monospace}
 .q-card span{font-size:11px;color:var(--muted)}
-.ana canvas{width:100%;display:block;background:#070d1e;border-radius:10px}
+.ana canvas{width:100%;display:block;background:#0d1a12;border-radius:10px}
 .ana-note{font-size:12px;color:var(--soft);line-height:1.6;margin-top:8px}
 .ana-warn{font-size:12px;color:#f59e0b;line-height:1.6;margin:4px 0}
 .ldg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -163,7 +164,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .action-btn:hover{background:rgba(255,255,255,.1);color:var(--text)}
 .action-btn.primary{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--cyan)}
 .action-btn.primary:hover{background:rgba(0,212,255,.2)}
-#output-cvs{width:100%;display:block;background:#070d1e;cursor:default}
+#output-cvs{width:100%;display:block;background:#0d1a12;cursor:default}
 .legend-area{padding:8px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:12px}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--soft)}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
@@ -212,6 +213,9 @@ body.light #bg{opacity:0.05 !important;}
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <div id="prog"></div>
@@ -993,7 +997,7 @@ function drawResult(pts){
   var cvs=document.getElementById('output-cvs');if(!cvs)return;
   cvs.width=cvs.offsetWidth;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   if(!pts||!pts.length){return;}
   var pl=52,pr=24,pt2=20,pb=32;
   // legend on right if labels
@@ -1124,7 +1128,7 @@ function analyse(Y){
 
 function drawSteps(hdn,ldn,flagged,lab){
   var cv=sizeCanvas('step-cvs',220),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pl=44,pr=14,pt=14,pb=34;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var m=hdn.length,ymax=Math.max(2,Math.max.apply(null,hdn.concat(ldn)))*1.1;
   var sx=function(i){return pl+(m>1?i/(m-1):0.5)*(W-pl-pr);},sy=function(v){return H-pb-v/ymax*(H-pt-pb);};
   ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
@@ -1142,7 +1146,7 @@ function drawSteps(hdn,ldn,flagged,lab){
 
 function drawScree(info){
   var cv=sizeCanvas('scree-cvs',200),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pl=44,pr=14,pt=14,pb=30;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var ev=info.evr,m=ev.length,bw=(W-pl-pr)/m,cum=0,cums=ev.map(function(v){cum+=v;return cum;});
   var sy=function(p){return H-pb-p*(H-pt-pb);};
   ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='9px JetBrains Mono,monospace';ctx.textAlign='right';ctx.textBaseline='middle';

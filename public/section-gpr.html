@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GPR &mdash; Gaussian Process Regression | MANIFOLD</title>
@@ -68,7 +69,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .int-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px}
 .int-card h4{font-family:'Playfair Display',serif;font-size:17px;margin-bottom:8px}
 .int-card p{color:var(--soft);font-size:13px;line-height:1.7;margin-bottom:14px}
-.int-cvs{width:100%;border-radius:10px;background:#070d1e;border:1px solid var(--border);display:block}
+.int-cvs{width:100%;border-radius:10px;background:#0d1a12;border:1px solid var(--border);display:block}
 .int-btn{margin-top:8px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25);color:var(--accent);padding:7px 16px;border-radius:100px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
 .int-btn:hover{background:rgba(0,212,255,.2)}
 
@@ -87,7 +88,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .deriv-step{margin:10px 0;padding-left:12px;border-left:2px solid rgba(0,212,255,.25);font-size:13px;color:var(--soft)}
 .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);border-radius:100px;padding:7px 16px;font-size:13px;color:var(--accent);margin-top:16px}
 .cvs-wrap{position:relative}
-.step-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid var(--border);display:block}
+.step-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
 .cvs-btn{margin-top:10px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
 .cvs-btn:hover{background:rgba(0,212,255,.2)}
 
@@ -98,7 +99,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .kernel-card h4{font-size:15px;font-weight:600;margin-bottom:4px}
 .kernel-card .kf{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);background:rgba(0,212,255,.06);padding:6px 10px;border-radius:6px;margin:8px 0;line-height:1.8}
 .kernel-card p{color:var(--soft);font-size:13px;line-height:1.65}
-.kernel-cvs{width:100%;border-radius:8px;background:#070d1e;border:1px solid var(--border);display:block;margin-top:10px}
+.kernel-cvs{width:100%;border-radius:8px;background:#0d1a12;border:1px solid var(--border);display:block;margin-top:10px}
 
 /* Explorer */
 .explorer-wrap{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px}
@@ -107,7 +108,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .explorer-hd p{color:var(--soft);font-size:15px}
 .ex-layout{display:grid;grid-template-columns:1fr 300px;gap:28px;align-items:start}
 @media(max-width:1000px){.ex-layout{grid-template-columns:1fr}}
-#gpr-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid rgba(0,212,255,.15);display:block;cursor:crosshair}
+#gpr-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid rgba(0,212,255,.15);display:block;cursor:crosshair}
 .gpr-hint{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:8px;text-align:center}
 .ctrl-panel{display:flex;flex-direction:column;gap:14px}
 .ctrl-section{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:18px}
@@ -189,6 +190,9 @@ body.light #bg{opacity:0.05 !important;}
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <div id="prog"></div>
@@ -844,7 +848,7 @@ function sampleGP(xs,kfn,rng,numSamples){
 ════════════════════════════════════════ */
 function clearCanvas(cvs,ctx){
   ctx.clearRect(0,0,cvs.width,cvs.height);
-  ctx.fillStyle='#070d1e';
+  ctx.fillStyle='#0d1a12';
   ctx.fillRect(0,0,cvs.width,cvs.height);
 }
 
@@ -964,7 +968,7 @@ function drawGPRScene(ctx,W,H,xs,ys,xstar,kfn,sn,opts){
   var pl=36,pr=14,pt=20,pb=24;
   var yMin=-3,yMax=3;
   clearCanvas({width:W,height:H},{clearRect:function(){},fillStyle:'',fillRect:function(){}},ctx);
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   drawAxes(ctx,W,H,pl,pr,pt,pb,yMin,yMax);
   var co=makeCoords(W,H,pl,pr,pt,pb,0,1,yMin,yMax);
 
@@ -1030,7 +1034,7 @@ function drawGPRScene(ctx,W,H,xs,ys,xstar,kfn,sn,opts){
 function drawStep1(t){
   var cvs=document.getElementById('cvs1');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   // Show prior samples fading in
   var pl=36,pr=14,pt=20,pb=24,yMin=-3,yMax=3;
@@ -1060,7 +1064,7 @@ function drawStep1(t){
 function drawStep2(t){
   var cvs=document.getElementById('cvs2');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   // Show 3 different length scales
   var pl=36,pr=14,pt=20,pb=24,yMin=-3,yMax=3;
@@ -1095,7 +1099,7 @@ function drawStep2(t){
 function drawStep3(t){
   var cvs=document.getElementById('cvs3');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   // Show covariance matrix as heatmap
   var n=6;
@@ -1198,7 +1202,7 @@ function drawKernelGallery(){
     var cvs=document.getElementById(id);if(!cvs)return;
     cvs.width=cvs.offsetWidth;cvs.height=120;
     var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-    ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
     var rng2=seededRNG(77);
     var xs2=Array.from({length:80},function(_,i){return i/79;});
     var samples=sampleGP(xs2,kfn,rng2,3);
@@ -1282,7 +1286,7 @@ function renderGPR(){
   var cvs=document.getElementById('gpr-cvs');if(!cvs)return;
   cvs.width=cvs.offsetWidth;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var params=getParams();
   var kfn=buildKfn(params);
   var pl=42,pr=14,pt=22,pb=30;

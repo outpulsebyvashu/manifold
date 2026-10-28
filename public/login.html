@@ -98,7 +98,42 @@ body.light .theme-btn-fixed{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,
 
 </style>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
-</head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
+<style id="login-theme">
+/* login: same design language (lime brand card, white form card, Outfit) */
+body{align-items:flex-start!important;overflow:auto!important;padding:20px 0 40px;font-family:var(--font)!important}
+body.light canvas#bg,body.light .blob,canvas#bg{display:none!important}
+.wrap{max-width:440px;padding:0 14px}
+.brand{background:var(--lime);border-radius:32px;padding:30px 18px 26px;margin-bottom:12px}
+body:not(.light) .brand{background:var(--card)}
+.app-name{font-family:var(--font)!important;font-size:clamp(36px,11vw,52px)!important;font-weight:300!important;letter-spacing:-.045em!important;background:none!important;-webkit-text-fill-color:currentColor!important;color:var(--forest)!important}
+body:not(.light) .app-name{color:var(--text)!important}
+.app-sub{color:rgba(15,59,31,.72)!important;letter-spacing:.16em!important;font-size:10.5px!important}
+body:not(.light) .app-sub{color:var(--muted)!important}
+.dim-dots span{background:var(--forest)!important}
+body:not(.light) .dim-dots span{background:var(--lime)!important}
+.card{background:var(--card)!important;border:0!important;border-radius:28px!important;padding:22px 18px 20px!important;backdrop-filter:none!important}
+.card::before{display:none!important}
+.card-title{font-family:var(--font)!important;font-weight:500!important;letter-spacing:-.02em!important;font-size:22px!important;color:var(--text)!important}
+.card-desc{color:var(--muted)!important}
+.note{background:var(--chip)!important;border:0!important;border-radius:18px!important;color:var(--muted)!important}
+.footer,.footer a,.divider-txt,.loading-msg,.denied-sub,#pw-note{color:var(--muted)!important}
+.divider-line{background:var(--border)!important}
+.spinner{border-color:rgba(15,59,31,.15)!important;border-top-color:var(--forest)!important}
+.denied-title{color:var(--rose)!important}
+.denied-email{background:var(--chip)!important;border:0!important;color:var(--text)!important}
+.try-again-btn{background:var(--chip)!important;border:0!important;color:var(--text)!important;border-radius:999px!important}
+.pw-tabs button{border:0!important;background:var(--chip)!important;color:var(--text)!important;border-radius:999px!important}
+.pw-tabs button.on{background:var(--lime)!important;color:var(--forest)!important}
+#pw-form input{background:var(--chip)!important;border:0!important;border-radius:14px!important;color:var(--text)!important}
+#pw-form input:focus{outline:2px solid var(--forest)}
+body:not(.light) #pw-form input:focus{outline-color:var(--lime)}
+#pw-submit{background:var(--forest)!important;color:#fff!important;border-radius:999px!important;font-weight:500}
+body:not(.light) #pw-submit{background:var(--lime)!important;color:var(--forest)!important}
+.theme-btn-fixed{background:var(--card)!important;border:0!important;color:var(--text)!important;border-radius:50%!important;width:44px!important;height:44px!important;top:14px!important;right:14px!important}
+</style>
 <body>
 <canvas id="bg"></canvas>
 <button class="theme-btn-fixed" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">&#9728;&#65039;</button>
@@ -234,7 +269,7 @@ function initGoogle(){
   });
   google.accounts.id.renderButton(
     document.getElementById('g_id_signin'),
-    {theme:'filled_black',size:'large',width:320,shape:'rectangular',text:'signin_with',logo_alignment:'left'}
+    {theme:'outline',size:'large',width:300,shape:'pill',text:'signin_with',logo_alignment:'left'}
   );
 }
 

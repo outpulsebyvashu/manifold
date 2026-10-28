@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UMAP — Uniform Manifold Approximation & Projection | MANIFOLD</title>
@@ -72,7 +73,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 
 /* Canvas */
 .cvs-wrap{position:relative}
-.step-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid var(--border);display:block}
+.step-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
 .cvs-btn{margin-top:10px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
 .cvs-btn:hover{background:rgba(16,185,129,.2)}
 
@@ -103,7 +104,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 #ds-info{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:22px;min-height:16px}
 .ex-layout{display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start}
 @media(max-width:1050px){.ex-layout{grid-template-columns:1fr}}
-#ex-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid var(--border);display:block}
+#ex-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
 .iter-bar-wrap{margin-top:12px}
 .iter-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;justify-content:space-between}
 .iter-bar-bg{height:3px;background:rgba(255,255,255,.06);border-radius:2px}
@@ -180,6 +181,9 @@ body.light #bg{opacity:0.05 !important;}
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <div id="prog"></div>
@@ -637,7 +641,7 @@ function drawStep1(t){
   var cvs=document.getElementById('cvs1');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
   var et=eio(clamp(t,0,1));
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var pts=DMO_PTS,n=pts.length,K=4;
   var allX=pts.map(function(p){return p[0];}),allY=pts.map(function(p){return p[1];});
   var mnX=Math.min.apply(null,allX)-0.8,mxX=Math.max.apply(null,allX)+0.8;
@@ -688,7 +692,7 @@ function drawStep2(t){
   var cvs=document.getElementById('cvs2');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
   var et=eio(clamp(t,0,1));
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
 
   // Show 3 examples of fuzzy union vs simple average
   var cases=[
@@ -746,7 +750,7 @@ function drawStep3(t){
   var cvs=document.getElementById('cvs3');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
   var et=eio(clamp(t,0,1));
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
 
   // Show random init on left, spectral layout on right
   var rng1=seededRNG(10),rng2=seededRNG(20);
@@ -790,7 +794,7 @@ function drawStep4(t){
   var cvs=document.getElementById('cvs4');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
   var et=eio(clamp(t,0,1));
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
 
   var pl=52,pr=20,pt2=36,pb=44,cW=W-pl-pr,cH=H-pt2-pb;
   var maxR=4,steps=120;
@@ -865,7 +869,7 @@ function drawStep5(t){
   var cvs=document.getElementById('cvs5');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
   var et=eio(clamp(t,0,1));
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
 
   // 5 points: 2 pairs + 1 negative sample
   var pts=[
@@ -1191,7 +1195,7 @@ function drawScatter(ctx,W,H,pts,labels,colors,cn,title,xl,yl){
 function drawUMAP(){
   var cvs=document.getElementById('ex-cvs');if(!cvs||!UMAP_STATE.Y)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var ds=UMAP_STATE.ds;
   var pts=UMAP_STATE.showAlt&&tsnePts?tsnePts:UMAP_STATE.Y;
   var label=UMAP_STATE.showAlt?'Force-Directed (comparison)':'UMAP';

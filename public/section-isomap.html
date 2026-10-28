@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#e9e9e9">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Isomap &mdash; Isometric Mapping | MANIFOLD</title>
@@ -66,7 +67,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .deriv-step{margin:10px 0;padding-left:12px;border-left:2px solid rgba(245,158,11,.28);font-size:13px;color:var(--soft)}
 .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:100px;padding:7px 16px;font-size:13px;color:var(--accent);margin-top:16px}
 .cvs-wrap{position:relative}
-.step-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid var(--border);display:block}
+.step-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
 .cvs-btn{margin-top:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
 .cvs-btn:hover{background:rgba(245,158,11,.2)}
 
@@ -100,7 +101,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 #ds-info{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:22px;min-height:16px}
 .ex-layout{display:grid;grid-template-columns:1fr 360px;gap:28px;align-items:start}
 @media(max-width:1050px){.ex-layout{grid-template-columns:1fr}}
-#ex-cvs{width:100%;border-radius:12px;background:#070d1e;border:1px solid var(--border);display:block}
+#ex-cvs{width:100%;border-radius:12px;background:#0d1a12;border:1px solid var(--border);display:block}
 .phase-bar{display:flex;gap:6px;margin-top:10px}
 .phase-dot{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,.08);transition:background .3s}
 .phase-dot.active{background:var(--accent)}
@@ -177,6 +178,9 @@ body.light #bg{opacity:0.05 !important;}
 <script src="guard.js"></script>
 <script src="manifold-core.js"></script>
 <style>@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="theme.js"></script>
 </head>
 <body>
 <div id="prog"></div>
@@ -670,7 +674,7 @@ function makeCoords2D(pts,pad,W,H){
 function drawStep1(t){
   var cvs=document.getElementById('cvs1');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   var pad=28,K=5;
   var sc=makeCoords2D(SWISS2D.pts,pad,W,H);
@@ -714,7 +718,7 @@ function drawStep1(t){
 function drawStep2(t){
   var cvs=document.getElementById('cvs2');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   var pad=28,K=5;
   var sc=makeCoords2D(SWISS2D.pts,pad,W,H);
@@ -780,7 +784,7 @@ function drawStep2(t){
 function drawStep3(t){
   var cvs=document.getElementById('cvs3');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   // Show left: original Swiss roll, right: Isomap embedding
   var K=6;
@@ -827,7 +831,7 @@ function drawStep3(t){
 function drawStep4(t){
   var cvs=document.getElementById('cvs4');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   // Synthetic residual variance plot (3D Swiss roll: intrinsic dim = 2)
   var pl=52,pr=20,pt=32,pb=44,cW=W-pl-pr,cH=H-pt-pb;
@@ -891,7 +895,7 @@ function drawStep4(t){
 function drawStep5(t){
   var cvs=document.getElementById('cvs5');if(!cvs)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var et=eio(clamp(t,0,1));
   // Show two points: geodesic path vs Euclidean shortcut
   var pad=32,K=5;
@@ -1096,7 +1100,7 @@ function exScatter(ctx,W,H,pts,labels,colors,cn,title,xl,yl){
 function drawExplorer(gt){
   var cvs=document.getElementById('ex-cvs');if(!cvs||!EX)return;
   var ctx=cvs.getContext('2d'),W=cvs.width,H=cvs.height;
-  ctx.clearRect(0,0,W,H);ctx.fillStyle='#070d1e';ctx.fillRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d1a12';ctx.fillRect(0,0,W,H);
   var ph=getPhase(gt),phase=ph.phase,et=eio(clamp(ph.lt,0,1));
   var ds=EX.ds,iso=EX.iso;
 

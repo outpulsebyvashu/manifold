@@ -60,7 +60,7 @@ body.dark :focus-visible{outline-color:var(--lime);}
 
 /* ═══ HEADER ═══ */
 .top{display:flex;align-items:center;gap:10px;}
-.avatar{
+.avatar{border:0;cursor:pointer;
   width:46px;height:46px;border-radius:50%;flex-shrink:0;overflow:hidden;
   background:var(--lime);color:var(--forest);
   display:flex;align-items:center;justify-content:center;
@@ -151,7 +151,10 @@ body.dark .btn.ghost{border-color:#3b463b;}
 .c-lime .big2{font-size:clamp(48px,15vw,64px);font-weight:300;letter-spacing:-.04em;line-height:1;margin:6px 0 18px;display:flex;align-items:center;gap:10px;position:relative;}
 .c-lime .chip{background:#fff;color:var(--forest);}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;}
-.tile{background:rgba(255,255,255,.5);border-radius:18px;padding:12px 14px;}
+.tile{display:block;background:rgba(255,255,255,.5);border-radius:18px;padding:12px 14px;transition:transform .15s}
+.tile:active,.pill-dark:active,.c-lime .chip:active{transform:scale(.96)}
+.c-lime .chip{text-decoration:none}
+a,button{touch-action:manipulation}
 .tile span{display:block;font-size:12px;color:rgba(15,59,31,.7);}
 .tile strong{display:block;font-size:22px;font-weight:400;margin-top:4px;letter-spacing:-.02em;}
 
@@ -245,6 +248,17 @@ body.dark .alert .tx span{color:#ff9a63;}
 .seen{margin-left:auto;font-size:12px;color:var(--pos);display:flex;align-items:center;gap:4px;}
 .seen svg{width:13px;height:13px;}
 .empty{grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;background:var(--card);border-radius:var(--r-lg);}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.sheet[hidden]{display:none}
+.sheet-card{width:100%;max-width:520px;background:var(--card);border-radius:28px 28px 0 0;padding:22px 20px max(24px,env(safe-area-inset-bottom));animation:up .2s ease}
+@keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.sheet-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.sheet-who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sheet-who b{font-size:20px;font-weight:500}
+.sheet-who span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-who i{font-style:normal;align-self:flex-start;margin-top:4px;text-transform:capitalize}
+.sheet-actions{display:flex;gap:10px;flex-wrap:wrap}
+.sheet-actions .btn{flex:1;justify-content:center}
 .foot{text-align:center;margin-top:28px;font-size:12px;color:var(--muted);}
 
 /* ═══ BREAKPOINTS ═══ */
@@ -276,7 +290,7 @@ body.dark .alert .tx span{color:#ff9a63;}
 
   <!-- ═══ HEADER ═══ -->
   <header class="top">
-    <div class="avatar" id="avatar" aria-hidden="true">?</div>
+    <button class="avatar" id="avatar" type="button" aria-label="Account menu" aria-haspopup="dialog">?</button>
     <div class="hello">Hello, <b id="who">there</b></div>
     <button class="round" id="searchBtn" aria-label="Search sections" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -328,13 +342,13 @@ body.dark .alert .tx span{color:#ff9a63;}
     <section class="card c-lime" aria-label="Platform stats">
       <svg class="star" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 0C55 30 70 45 100 50 70 55 55 70 50 100 45 70 30 55 0 50 30 45 45 30 50 0Z" fill="rgba(255,255,255,.3)"/></svg>
       <div style="display:flex;align-items:center;margin-bottom:22px;position:relative">
-        <span class="pill-dark">FEATURED <i>+</i></span>
+        <a class="pill-dark" href="section05-playground.html" aria-label="Open the Dataset Playground">FEATURED <i>+</i></a>
       </div>
       <div class="lbl" style="position:relative">Algorithms covered</div>
-      <div class="big2">5 <span class="chip">+ GPR</span></div>
+      <div class="big2">5 <a class="chip" href="section-gpr.html" aria-label="Gaussian Process Regression">+ GPR</a></div>
       <div class="tiles">
-        <div class="tile"><span>Built-in datasets</span><strong>9</strong></div>
-        <div class="tile"><span>Sections</span><strong id="secCount">10</strong></div>
+        <a class="tile" href="section05-playground.html"><span>Built-in datasets</span><strong>9</strong></a>
+        <a class="tile" href="#listTop" id="secTile"><span>Sections</span><strong id="secCount">10</strong></a>
       </div>
     </section>
 
@@ -377,10 +391,22 @@ body.dark .alert .tx span{color:#ff9a63;}
   </main>
 
   <!-- ═══ ALL SECTIONS ═══ -->
-  <div class="list-h"><h2>All sections</h2><span class="chip" id="listCount">10</span></div>
+  <div class="list-h" id="listTop"><h2>All sections</h2><span class="chip" id="listCount">10</span></div>
   <div class="cards" id="cards"></div>
 
   <p class="foot">Manifold · Interactive dimensionality reduction</p>
+</div>
+
+<!-- account sheet -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-label="Your account">
+    <div class="sheet-top"><div class="avatar" id="avatar2" aria-hidden="true">?</div>
+      <div class="sheet-who"><b id="shName">Guest</b><span id="shEmail"></span><i id="shRole" class="chip">student</i></div></div>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="shTheme" type="button">Switch theme</button>
+      <a class="btn solid" id="shOut" href="login.html">Sign out</a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -562,6 +588,7 @@ $('searchBtn').addEventListener('click', () => {
   $('searchBtn').setAttribute('aria-expanded', open);
   if(open) $('q').focus(); else { query = ''; $('q').value = ''; setTabUI(tab); renderList(); }
 });
+$('q').addEventListener('keydown', e => { if(e.key === 'Escape'){ $('searchBtn').click(); } });
 $('q').addEventListener('input', e => { query = e.target.value; setTabUI(query.trim() ? null : tab); renderList(); });
 let resetArmed = null;
 $('resetBtn').addEventListener('click', () => {
@@ -592,6 +619,18 @@ window.addEventListener('pageshow', e => { if(e.persisted){
 
 document.addEventListener('click', e => { if(e.target.closest('#logoutBtn')){ try { fetch('api/logout',{method:'POST',keepalive:true,credentials:'same-origin'}); } catch(err){} try { sessionStorage.clear(); } catch(err){} } });
 
+/* ── Account sheet ── */
+(function(){
+  const sheet = $('sheet');
+  const open = () => { sheet.hidden = false; $('shOut').focus(); };
+  const close = () => { sheet.hidden = true; $('avatar').focus(); };
+  $('avatar').addEventListener('click', open);
+  sheet.addEventListener('click', e => { if(e.target === sheet) close(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && !sheet.hidden) close(); });
+  $('shTheme').addEventListener('click', () => { $('themeBtn').click(); });
+  $('shOut').addEventListener('click', () => { try { fetch('api/logout',{method:'POST',keepalive:true,credentials:'same-origin'}); } catch(err){} try { sessionStorage.clear(); } catch(err){} });
+})();
+
 /* ── Session info ── */
 (function(){
   let name = 'Guest', email = '', role = 'student', picture = '';
@@ -602,14 +641,16 @@ document.addEventListener('click', e => { if(e.target.closest('#logoutBtn')){ tr
     picture = sessionStorage.getItem('manifold_picture') || '';
   } catch(e){}
   $('who').textContent = name.split(' ')[0] || 'there';
+  $('shName').textContent = name; $('shEmail').textContent = email || 'Not signed in with an email'; $('shRole').textContent = role === 'owner' ? 'admin' : role;
   $('acct').textContent = (role === 'admin' || role === 'owner' ? 'Admin · ' : '') + (email || name);
   const av = $('avatar');
   if(picture && /^https:\/\//.test(picture)){
     const img = document.createElement('img');
     img.src = picture; img.alt = ''; img.referrerPolicy = 'no-referrer';
-    av.textContent = ''; av.appendChild(img);
+    av.textContent = ''; av.appendChild(img); { const i2 = img.cloneNode(); $('avatar2').textContent = ''; $('avatar2').appendChild(i2); }
   } else {
     av.textContent = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) || '?';
+    $('avatar2').textContent = av.textContent;
   }
 })();
 
