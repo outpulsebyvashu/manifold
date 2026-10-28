@@ -116,6 +116,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .opt-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
 .opt-row select,.opt-row input[type=number]{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 6px;font-size:12px}
 .opt-row select{max-width:100%;width:100%}
+.paste summary{cursor:pointer;font-size:12px;color:var(--accent);margin-top:8px}
+.paste textarea,#methods-ta{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:6px}
+.sweep-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.sweep-grid{grid-template-columns:1fr 1fr}}
+.sweep-grid figure{margin:0;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:6px}
+.sweep-grid figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
+.sweep-grid canvas{width:100%;height:auto;border-radius:6px}
+.pitfalls{margin-top:18px;border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+.pitfalls summary{cursor:pointer;font-size:13px;color:var(--soft)}
+.pitfalls ul{margin:10px 0 0 18px;font-size:12px;color:var(--soft);line-height:1.7}
+.fm-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.fm-table td,.fm-table th{padding:4px 6px;border-bottom:1px solid var(--border);text-align:left}
+
 .mini-btn{margin-top:8px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.3);color:var(--accent);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
 .std-opt{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--soft);cursor:pointer}
 .std-opt input{width:16px;height:16px;accent-color:var(--accent)}
@@ -231,10 +244,17 @@ body.light #bg{opacity:0.05 !important;}
     </div>
     <div class="ctrl-body">
       <div class="upload-zone" id="upload-zone">
-        <input type="file" id="file-input" accept=".csv,.txt">
+        <input type="file" id="file-input" accept=".csv,.txt" multiple>
         <h4>&#128196; Drop CSV here</h4>
         <p>or click to browse</p>
       </div>
+      <details class="paste"><summary>Paste CSV text instead</summary>
+        <textarea id="paste-ta" rows="5" placeholder="temperature,cell0,cell1&#10;300,0.51,0.62&#10;310,0.52,0.61"></textarea>
+        <button class="mini-btn" id="paste-load" type="button">Load pasted data</button></details>
+      <button class="mini-btn" id="tpl-btn" type="button" title="A tiny example table: one row per state (e.g. temperature), one column per feature">&#11015; Template CSV</button>
+      <div class="ana-note" id="multi-list"></div>
+      <div class="opt-row" id="multi-opt" style="display:none">Several files:
+        <select id="multi-mode"><option value="overlay">Separate embeddings, overlaid</option><option value="joint">Joint embedding (same columns)</option></select></div>
       <div style="font-size:10px;color:var(--muted);text-align:center;margin:7px 0">or try a built-in dataset</div>
       <div class="builtin-grid">
         <button class="builtin-btn active" data-builtin="iris">
@@ -252,6 +272,18 @@ body.light #bg{opacity:0.05 !important;}
         <button class="builtin-btn" data-builtin="digits">
           <span class="builtin-name">&#128290; Digits</span>
           <span class="builtin-sub">100pt · 64feat · 5cls</span>
+        </button>
+        <button class="builtin-btn" data-builtin="breast">
+          <span class="builtin-name">&#129516; Breast tumours</span>
+          <span class="builtin-sub">200pt · 30feat · real</span>
+        </button>
+        <button class="builtin-btn" data-builtin="melt">
+          <span class="builtin-name">&#127777; Polymer melt</span>
+          <span class="builtin-sub">17pt · 200feat · synthetic</span>
+        </button>
+        <button class="builtin-btn" data-builtin="tensile">
+          <span class="builtin-name">&#128297; Tensile tests</span>
+          <span class="builtin-sub">90pt · 7feat · synthetic</span>
         </button>
       </div>
       <div class="error-banner" id="error-banner"></div>
@@ -322,8 +354,11 @@ body.light #bg{opacity:0.05 !important;}
         <select id="scale-sel" title="z-score: every feature gets equal weight. Global min-max: ONE range for the whole table, keeps relative magnitudes between features (useful when all columns are the same physical quantity, e.g. cell volumes).">
           <option value="z" selected>z-score per feature (recommended)</option>
           <option value="minmax">Global min&ndash;max (one range)</option>
+          <option value="logz">log10, then z-score (positive data)</option>
           <option value="none">None (raw values)</option>
         </select></div>
+      <div class="opt-row">Missing values
+        <select id="miss-sel"><option value="drop" selected>Drop the row</option><option value="mean">Fill with column mean</option><option value="median">Fill with column median</option></select></div>
       <div class="opt-row">PCA pre-reduce to <input type="number" id="pre-pca" min="0" max="50" value="0" style="width:60px"> dims <span style="color:var(--muted)">(0 = off; t-SNE / UMAP / Isomap only)</span></div>
     </div>
   </div>
@@ -372,6 +407,10 @@ body.light #bg{opacity:0.05 !important;}
     </div>
     <div class="output-actions">
       <button class="action-btn" id="toggle-labels-btn" onclick="toggleLabels()">Hide Labels</button>
+      <button class="action-btn" id="sweep-btn" title="Re-run with several settings and seeds to see how stable the picture is">&#8635; Stability</button>
+      <button class="action-btn" id="methods-btn" title="Auto-generated Methods paragraph">&#128221; Methods</button>
+      <button class="action-btn" id="csv-btn" title="Embedding coordinates as CSV">&#11015; CSV</button>
+      <button class="action-btn" id="svg-btn" title="Vector figure">&#11015; SVG</button>
       <button class="action-btn primary" onclick="downloadPNG()">&#11015; PNG</button>
     </div>
   </div>
@@ -390,6 +429,7 @@ body.light #bg{opacity:0.05 !important;}
     <div class="stat-box"><div class="stat-box-lbl">Time</div><div class="stat-box-val" id="stat-time">-</div></div>
   </div>
   <div class="ana" id="ana">
+    <div class="ana-note" id="prep-info"></div>
     <div id="ana-warn"></div>
     <h4>Embedding quality <span style="text-transform:none;letter-spacing:0;color:var(--muted)" id="q-k"></span></h4>
     <div class="q-grid" id="q-grid"></div>
@@ -399,12 +439,25 @@ body.light #bg{opacity:0.05 !important;}
       <canvas id="step-cvs" height="220"></canvas>
       <div class="ana-note" id="step-note"></div>
     </div>
+    <div id="multi-wrap" style="display:none"><h4>Per-file results</h4><div id="multi-table"></div></div>
+    <div id="sweep-wrap" style="display:none"><h4>Stability: settings and seeds</h4><div class="sweep-grid" id="sweep-grid"></div><div class="ana-note" id="sweep-note"></div></div>
+    <div id="methods-wrap" style="display:none"><h4>Methods text</h4><textarea id="methods-ta" rows="8" readonly></textarea><button class="mini-btn" id="methods-copy" type="button">Copy to clipboard</button></div>
     <h4>Variance explained (PCA reference)</h4>
     <canvas id="scree-cvs" height="200"></canvas>
     <div class="ana-note" id="scree-note"></div>
     <h4>Which features drive the main directions? (PCA loadings)</h4>
     <div class="ldg" id="ldg"></div>
     <div class="ana-note">Loadings show the weight of each original column in PC1/PC2 &mdash; the bar length is |loading|, the sign shows direction.</div>
+    <details class="pitfalls"><summary>What can go wrong? (read before you interpret the picture)</summary><ul>
+      <li><b>t-SNE / UMAP axes have no meaning.</b> Only neighbourhoods are trustworthy; cluster sizes and the distance <i>between</i> clusters are not quantitative.</li>
+      <li><b>Few samples, many features</b> (n &lt; d): at most n&minus;1 directions exist; scores are coarse; supervised LDA can separate <i>any</i> labelling, so validate on held-out data.</li>
+      <li><b>Scaling decides the answer.</b> z-score gives every column equal weight; global min&ndash;max keeps relative magnitudes between columns of the same physical quantity. Try both.</li>
+      <li><b>Order is an assumption.</b> Trajectories and the transition detector assume rows are ordered by the colour column (or by file order). A large step is a <i>candidate</i>, not proof.</li>
+      <li><b>Different embeddings are not on the same axes.</b> When files are embedded separately and overlaid, only the shape of each path can be compared.</li>
+      <li><b>Imputation changes the data.</b> Dropping a row creates a longer step across the gap; filling with the mean shrinks variance.</li>
+      <li><b>Always check the stability panel.</b> If the layout changes with perplexity, n_neighbors or the random seed, do not over-interpret it.</li>
+      <li><b>Confirm with physics / biology.</b> Use an independent observable (density vs temperature, a clinical marker, a stress&ndash;strain curve) before claiming a transition or a subgroup.</li>
+    </ul></details>
   </div>
 </div>
 
@@ -961,20 +1014,25 @@ function drawResult(pts){
   for(var gi=0;gi<=5;gi++){ctx.beginPath();ctx.moveTo(pl+gi/5*cW,pt2);ctx.lineTo(pl+gi/5*cW,H-pb);ctx.stroke();ctx.beginPath();ctx.moveTo(pl,pt2+gi/5*cH);ctx.lineTo(W-pr,pt2+gi/5*cH);ctx.stroke();}
   ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;ctx.strokeRect(pl,pt2,cW,cH);
   // Trajectory (points joined in order, e.g. increasing temperature)
-  if(APP.traj&&APP.order&&APP.order.length===pts.length){
-    ctx.beginPath();APP.order.forEach(function(idx,t){var x=sx(pts[idx][0]),y=sy(pts[idx][1]);t?ctx.lineTo(x,y):ctx.moveTo(x,y);});
-    ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1.4;ctx.stroke();
+  var ords=APP.orders?APP.orders:(APP.order&&APP.order.length===pts.length?[APP.order]:[]);
+  if(APP.traj&&ords.length){
+    ords.forEach(function(o){
+      ctx.beginPath();o.forEach(function(idx,t){var x=sx(pts[idx][0]),y=sy(pts[idx][1]);t?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+      ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1.4;ctx.stroke();
+    });
   }
   // Points
   pts.forEach(function(p,i){
     var col=cont?APP.pointColors[i]:(APP.colors[APP.labels[i]]||'#aaa');
-    ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),5,0,Math.PI*2);
-    ctx.fillStyle=col+'cc';ctx.fill();ctx.strokeStyle=col+'55';ctx.lineWidth=0.8;ctx.stroke();
+    if(window.drawMarker)window.drawMarker(ctx,sx(p[0]),sy(p[1]),APP.dataset?APP.dataset[i]:0,col);
+    else{ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),5,0,Math.PI*2);ctx.fillStyle=col+'cc';ctx.fill();ctx.strokeStyle=col+'55';ctx.lineWidth=0.8;ctx.stroke();}
   });
-  if(APP.traj&&APP.order&&APP.order.length===pts.length){
+  if(APP.traj&&ords.length){
     ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='10px DM Sans,sans-serif';ctx.textAlign='left';ctx.textBaseline='bottom';
-    var f0=pts[APP.order[0]],l0=pts[APP.order[APP.order.length-1]];
-    ctx.fillText('start',sx(f0[0])+8,sy(f0[1])-6);ctx.fillText('end',sx(l0[0])+8,sy(l0[1])-6);
+    ords.forEach(function(o,oi){
+      var f0=pts[o[0]],l0=pts[o[o.length-1]],tag=ords.length>1?(' '+(oi+1)):'';
+      ctx.fillText('start'+tag,sx(f0[0])+8,sy(f0[1])-6);ctx.fillText('end'+tag,sx(l0[0])+8,sy(l0[1])-6);
+    });
   }
   // Colourbar for a continuous colour column
   if(cont){
@@ -1253,5 +1311,7 @@ window.addEventListener('load',function(){
 })();
 
 </script>
+<script src="datasets.js"></script>
+<script src="playground-ext.js"></script>
 </body>
 </html>

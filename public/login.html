@@ -215,48 +215,66 @@ function initGoogle(){
 }
 
 /* ── Called after user picks a Google account ── */
+function denied(msg){
+  document.getElementById('denied-email-txt').textContent = msg || 'Sign-in failed';
+  showState('denied');
+}
+
+// Shared finish step once we know who the user is (from the server, or the static fallback)
+function finishSignIn(u){
+  var email = u.email, name = u.name, role = u.role;
+  // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
+  var seen = {};
+  try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
+  if(!seen[email]){
+    notifyLogin(email, name);
+    sendWelcomeEmail(name, email);
+    seen[email] = Date.now();
+    try { localStorage.setItem('manifold_seen', JSON.stringify(seen)); } catch(e){}
+  }
+  // Display-only copy of the session for the UI
+  sessionStorage.setItem('manifold_user',    name);
+  sessionStorage.setItem('manifold_email',   email);
+  sessionStorage.setItem('manifold_role',    role);
+  sessionStorage.setItem('manifold_picture', u.picture || '');
+  document.getElementById('loading-msg').textContent =
+    role === 'owner' ? 'Welcome back! \u2014 opening dashboard\u2026' : 'Access confirmed \u2014 opening your dashboard\u2026';
+  setTimeout(function(){ window.location.href = 'dashboard.html'; }, 700);
+}
+
+// STATIC-HOSTING FALLBACK (no server / no Worker): checks the token claims in the browser only.
+// This is a courtesy login — it is NOT access control. Use the Cloudflare Worker deployment for real protection.
+function staticFallback(credential){
+  var payload;
+  try{
+    var b64 = String(credential).split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    while(b64.length % 4) b64 += '=';
+    payload = JSON.parse(atob(b64));
+  }catch(e){ denied('Invalid token'); return; }
+  var nowS = Math.floor(Date.now()/1000);
+  var issOk = payload.iss==='https://accounts.google.com' || payload.iss==='accounts.google.com';
+  if(!issOk || payload.aud!==CLIENT_ID || !(payload.exp>nowS) || !payload.email || payload.email_verified===false){ denied('Token rejected'); return; }
+  var email = String(payload.email).toLowerCase().trim();
+  finishSignIn({ email: email, name: payload.name || email.split('@')[0], picture: (typeof payload.picture==='string' && payload.picture.indexOf('https://')===0) ? payload.picture : '', role: 'student' });
+}
+
 function handleGoogleToken(response){
   showState('loading');
-  // The ID token is verified SERVER-SIDE (signature, issuer, audience, expiry, verified email) by the Worker,
-  // which then sets a signed HttpOnly session cookie. Nothing here is trusted.
-  fetch('/api/login', {
+  // With the Cloudflare Worker the ID token is verified SERVER-SIDE (signature, issuer, audience, expiry,
+  // verified email) and a signed HttpOnly session cookie is set. On plain static hosting there is no /api,
+  // so we fall back to the browser-only check above.
+  fetch('api/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
     body: JSON.stringify({ credential: response.credential })
   }).then(function(r){
-    return r.json().catch(function(){ return {}; }).then(function(j){ return { ok: r.ok, j: j }; });
-  }).then(function(res){
-    if(!res.ok || !res.j.user){
-      document.getElementById('denied-email-txt').textContent = (res.j && res.j.reason) ? res.j.reason : 'Sign-in failed';
-      showState('denied');
-      return;
-    }
-    var u = res.j.user, email = u.email, name = u.name, role = u.role;
-
-    // ── First sign-in on this device only: log to Google Form + send ONE welcome email ──
-    var seen = {};
-    try { seen = JSON.parse(localStorage.getItem('manifold_seen') || '{}') || {}; } catch(e){}
-    if(!seen[email]){
-      notifyLogin(email, name);
-      sendWelcomeEmail(name, email);
-      seen[email] = Date.now();
-      try { localStorage.setItem('manifold_seen', JSON.stringify(seen)); } catch(e){}
-    }
-
-    // Display-only copy of the session for the UI (the real session is the HttpOnly cookie)
-    sessionStorage.setItem('manifold_user',    name);
-    sessionStorage.setItem('manifold_email',   email);
-    sessionStorage.setItem('manifold_role',    role);
-    sessionStorage.setItem('manifold_picture', u.picture || '');
-
-    document.getElementById('loading-msg').textContent =
-      role === 'owner' ? 'Welcome back! \u2014 opening dashboard\u2026' : 'Access confirmed \u2014 opening your dashboard\u2026';
-    setTimeout(function(){ window.location.href = 'dashboard.html'; }, 700);
-  }).catch(function(){
-    document.getElementById('denied-email-txt').textContent = 'Could not reach the server';
-    showState('denied');
-  });
+    if(r.status===404 || r.status===405 || r.status===501){ staticFallback(response.credential); return; }   // no server here
+    return r.json().catch(function(){ return {}; }).then(function(j){
+      if(!r.ok || !j.user){ denied(j && j.reason ? j.reason : 'Sign-in failed'); return; }
+      finishSignIn(j.user);
+    });
+  }).catch(function(){ staticFallback(response.credential); });
 }
 
 /* ── Silent Google Form submission (fire-and-forget) ── */

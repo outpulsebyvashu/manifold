@@ -382,6 +382,7 @@
       }
       for (i = 0; i < n; i++) for (d = 0; d < 2; d++) Y[i][d] += vy[i][d];
       for (d = 0; d < 2; d++) { var m = 0; for (i = 0; i < n; i++) m += Y[i][d]; m /= n; for (i = 0; i < n; i++) Y[i][d] -= m; }
+      if (opts.onProgress && ((t + 1) % (opts.every || 10) === 0 || t === iters - 1)) opts.onProgress(t + 1, Y.map(function (r) { return r.slice(); }));
     }
     return Y;
   };
@@ -396,6 +397,43 @@
       if (bl === labels[i]) ok++;
     }
     return ok / n;
+  };
+
+  /* ── UMAP (batch). fuzzy graph -> spectral init -> SGD with negative sampling. opts: k, iters, minDist, seed, onProgress, every ── */
+  M.umap = function (data, opts) {
+    opts = opts || {};
+    var n = data.length, k = Math.min(opts.k || 15, n - 1), iters = opts.iters || 300, seed = opts.seed == null ? 42 : opts.seed;
+    var g = M.umapGraph(data, k), ab = M.fitAB(opts.minDist == null ? 0.1 : opts.minDist), a = ab[0], b = ab[1];
+    var Y = M.spectralInit(g.W, n, M.seededRNG(seed + n), 2), rng = M.seededRNG(77 + seed + n), edges = g.edges, el = edges.length, gc = 4;
+    function clampv(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    for (var e = 0; e < iters; e++) {
+      var lr = Math.max(0.05, 1 - e / iters);
+      for (var si = el - 1; si > 0; si--) { var ri = Math.floor(rng() * (si + 1)), tmp = edges[si]; edges[si] = edges[ri]; edges[ri] = tmp; }
+      for (var ei = 0; ei < el; ei++) {
+        var ed = edges[ei], ii = ed.i, jj = ed.j, w = ed.w;
+        var dx = Y[ii][0] - Y[jj][0], dy = Y[ii][1] - Y[jj][1], d2 = dx * dx + dy * dy + 1e-6;
+        var dp = Math.pow(d2, b), gA = clampv(w * 2 * a * b * Math.pow(d2, b - 1) / (1 + a * dp + 1e-7), 0, gc);
+        Y[ii][0] -= lr * gA * dx; Y[ii][1] -= lr * gA * dy; Y[jj][0] += lr * gA * dx; Y[jj][1] += lr * gA * dy;
+        for (var ns = 0; ns < 5; ns++) {
+          var kk = Math.floor(rng() * n); if (kk === ii || kk === jj) continue;
+          var dxk = Y[ii][0] - Y[kk][0], dyk = Y[ii][1] - Y[kk][1], d2k = dxk * dxk + dyk * dyk + 1e-6, dpk = Math.pow(d2k, b);
+          var gR = clampv(2 * b / (d2k * (1 + a * dpk) + 1e-7), 0, gc);
+          Y[ii][0] += lr * gR * dxk; Y[ii][1] += lr * gR * dyk;
+        }
+      }
+      if (opts.onProgress && ((e + 1) % (opts.every || 5) === 0 || e === iters - 1)) opts.onProgress(e + 1, Y.map(function (r) { return r.slice(); }));
+    }
+    return Y;
+  };
+
+  // pairwise-distance vector of an embedding (upper triangle)
+  M.distVec = function (Y) { var out = []; for (var i = 0; i < Y.length; i++) for (var j = i + 1; j < Y.length; j++) out.push(M.euclid(Y[i], Y[j])); return out; };
+  // How reproducible is a layout across seeds / settings? Mean pairwise Spearman correlation of distance vectors (1 = same geometry).
+  M.consistency = function (Ys) {
+    if (Ys.length < 2) return null;
+    var vs = Ys.map(M.distVec), tot = 0, c = 0;
+    for (var i = 0; i < vs.length; i++) for (var j = i + 1; j < vs.length; j++) { tot += M.spearman(vs[i], vs[j]); c++; }
+    return tot / c;
   };
 
   /* ── Embedding quality metrics ── */

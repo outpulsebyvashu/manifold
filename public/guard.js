@@ -13,7 +13,7 @@
     if (!user) {
       // New tab / cleared sessionStorage: ask the server (the HttpOnly cookie is the real session)
       try {
-        var x = new XMLHttpRequest(); x.open('GET', '/api/me', false); x.send();
+        var x = new XMLHttpRequest(); x.open('GET', 'api/me', false); x.send();
         if (x.status === 200) {
           var u = JSON.parse(x.responseText).user;
           sessionStorage.setItem('manifold_user', u.name); sessionStorage.setItem('manifold_email', u.email);

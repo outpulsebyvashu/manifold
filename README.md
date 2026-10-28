@@ -98,6 +98,10 @@ AUDIT.md           audit findings and fix status
 **Google sign-in:** in Google Cloud Console → OAuth client → *Authorised JavaScript origins*, add your Worker URL
 (e.g. `https://manifold.<your-subdomain>.workers.dev`) and any custom domain.
 
+**Static hosting (no server):** the contents of `public/` also run on Cloudflare Pages (upload a zip / folder) or GitHub Pages.
+There is no `/api`, so the login falls back to a browser-only token check — a courtesy login, **not** access control.
+Use the Worker deployment above when the content must be protected.
+
 **CLI alternative:** `npm i && npx wrangler secret put SESSION_SECRET && npx wrangler deploy`
 (local dev: copy `.dev.vars.example` to `.dev.vars`, then `npx wrangler dev`).
 

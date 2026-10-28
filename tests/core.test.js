@@ -50,6 +50,17 @@ const iso2 = M.isomap(fx.swiss, 1, { autoK: false });
 ok('autoK:false keeps k and reports disconnection when k is too small', iso2.kUsed === 1 && iso2.disconnected === true && iso2.Y.every(r => r.every(isFinite)));
 ok('Y has 2 columns, finite', iso.Y.every(r => r.length === 2 && r.every(isFinite)));
 
+console.log('UMAP batch / seeds');
+let progCalls = 0;
+const I0 = M.irisSample(30);
+const Yu = M.umap(I0.data, { k: 10, iters: 120, seed: 1, onProgress: () => { progCalls++; } });
+ok('UMAP separates species (5-NN acc >= 0.9) and reports progress', Yu.every(r => r.every(isFinite)) && M.knnAccuracy(Yu, I0.labels, 5) >= 0.9 && progCalls >= 20, [M.knnAccuracy(Yu, I0.labels, 5), progCalls]);
+const Yu2 = M.umap(I0.data, { k: 10, iters: 120, seed: 1 });
+ok('UMAP is deterministic for a fixed seed', Yu.every((r, i) => close(r[0], Yu2[i][0], 1e-12) && close(r[1], Yu2[i][1], 1e-12)));
+ok('consistency of identical layouts is 1', close(M.consistency([Yu, Yu2]), 1, 1e-9));
+const Ya = M.tsne(I0.data, { perplexity: 15, iters: 200, seed: 1 }), Yb = M.tsne(I0.data, { perplexity: 15, iters: 200, seed: 2 });
+ok('t-SNE seeds agree on the global geometry only moderately but clearly above random (0.3 < rho < 1)', (() => { const c = M.consistency([Ya, Yb]); return c > 0.3 && c < 1; })());
+
 console.log('Wide data (n << d) PCA via Gram matrix');
 const wide = M.pca(fx.wide.X, 5);
 ok('wide: dual path used, rank = n-1', wide.dual === true && wide.rank === fx.wide.X.length - 1, [wide.dual, wide.rank]);
